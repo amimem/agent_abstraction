@@ -10,6 +10,9 @@ import ray.rllib.contrib.maddpg as maddpg
 import ray.rllib.agents.dqn as dqn  # DQNTrainer
 import ray.rllib.agents.a3c.a2c as a2c  # A2CTrainer
 import ray.rllib.agents.ddpg.td3 as td3  # TD3Trainer
+from ray.tune.integration.wandb import WandbLogger
+from ray.tune.integration.wandb import WandbLoggerCallback
+from ray.tune.logger import DEFAULT_LOGGERS
 import supersuit
 
 # Based on code from github.com/parametersharingmadrl/parametersharingmadrl
@@ -42,7 +45,7 @@ if __name__ == "__main__":
             # Enviroment specific
             "env": "simple_adversary_v2",
             # General
-            # "framework": "torch",
+            "framework": "torch",
             "num_gpus": 0,
             # "num_workers": 2,
             # Method specific
@@ -50,6 +53,12 @@ if __name__ == "__main__":
                 "policies": set(env.agents),
                 "policy_mapping_fn": (
                     lambda agent_id, episode, **kwargs: agent_id),
-            }
+            },
+            # "wandb": {
+            #     "project": "marl",
+            #     "api_key_file": "wandb_api_key.txt",
+            #     "log_config": True
+            # }
         },
-    )
+        # callbacks=[WandbLoggerCallback(project="marl", api_key_file="wandb_api_key.txt",log_config=True)],
+        )
