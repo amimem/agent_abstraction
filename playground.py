@@ -6,6 +6,7 @@ from pettingzoo.mpe import simple_push_v2
 from pettingzoo.mpe import simple_adversary_v2
 from pettingzoo.mpe import simple_spread_v2
 from pettingzoo.mpe import simple_tag_v2
+from pettingzoo.magent import battle_v3
 import ray.rllib.contrib.maddpg as maddpg
 import ray.rllib.agents.dqn as dqn  # DQNTrainer
 import ray.rllib.agents.a3c.a2c as a2c  # A2CTrainer
@@ -13,6 +14,7 @@ import ray.rllib.agents.ddpg.td3 as td3  # TD3Trainer
 from ray.tune.integration.wandb import WandbLogger
 from ray.tune.integration.wandb import WandbLoggerCallback
 from ray.tune.logger import DEFAULT_LOGGERS
+from pettingzoo.utils import to_parallel
 import supersuit
 
 # Based on code from github.com/parametersharingmadrl/parametersharingmadrl
@@ -22,6 +24,7 @@ if __name__ == "__main__":
 
     def env_creator(args):
         env = simple_adversary_v2.env()
+        env = to_parallel(env)
         env = supersuit.pad_observations_v0(env)
         return ParallelPettingZooEnv(env)
 
@@ -46,8 +49,8 @@ if __name__ == "__main__":
             "env": "simple_adversary_v2",
             # General
             "framework": "torch",
-            "num_gpus": 0,
-            # "num_workers": 2,
+            "num_gpus": 1,
+            "num_workers": 5,
             # Method specific
             "multiagent": {
                 "policies": set(env.agents),
