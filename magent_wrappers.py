@@ -3,25 +3,10 @@ from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
 
 class MAgengtPettingZooEnv(PettingZooEnv):
     def __init__(self, env):
-        self.env = env
-        # agent idx list
-        self.agents = self.env.possible_agents
-
-        # Get dictionaries of obs_spaces and act_spaces
-        self.observation_spaces = self.env.observation_spaces
-        self.action_spaces = self.env.action_spaces
-
+        super().__init__(env)
+        
         # Get first action space, assuming all agents have equal space
         self.observation_space = self.env.state_space
-        self.action_space = self.action_spaces[self.agents[0]]
-
-        assert all(act_space == self.action_space
-                for act_space in self.env.action_spaces.values()), \
-            "Action spaces for all agents must be identical. Perhaps " \
-            "SuperSuit's pad_action_space wrapper can help (useage: " \
-            "`supersuit.aec_wrappers.pad_action_space(env)`"
-
-        self.reset()
 
     def step(self, action):
         self.env.step(action[self.env.agent_selection])
@@ -48,6 +33,12 @@ class MAgengtPettingZooEnv(PettingZooEnv):
         done_d["__all__"] = all_done
 
         return state_d, rew_d, done_d, info_d
+
+    def reset(self):
+        self.env.reset()
+        return {
+            self.env.agent_selection: self.env.state()
+        }
 
 
 class MAgentParallelPettingZooEnv(ParallelPettingZooEnv):
