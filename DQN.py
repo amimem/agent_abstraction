@@ -6,6 +6,7 @@ from pettingzoo.magent import battle_v3
 from ray.rllib.agents.dqn import DQNTrainer, DQNTFPolicy, DQNTorchPolicy
 from ray.tune.logger import pretty_print
 from ray.tune.registry import register_env
+from magent_wrappers import MAgengtPettingZooEnv, MAgentParallelPettingZooEnv
 import os
 from supersuit import flatten_v0
 
