@@ -16,10 +16,7 @@ if __name__ == "__main__":
     def env_creator(args):
         env = battle_v3.env(map_size=15, minimap_mode=True)
         env = flatten_v0(env)
-        return PettingZooEnv(env)
-        # env = to_parallel(env)
-        # env = supersuit.pad_observations_v0(env)
-        # env = supersuit.pad_action_space_v0(env)
+        return MAgengtPettingZooEnv(env)
 
     env = env_creator({})
     register_env("battle_v3", env_creator)
