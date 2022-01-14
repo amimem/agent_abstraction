@@ -14,7 +14,7 @@ if __name__ == "__main__":
     # ADQN - Apex DQN
 
     def env_creator(args):
-        env = battle_v3.env(map_size=15, minimap_mode=True)
+        env = battle_v3.env(map_size=15)
         env = flatten_v0(env)
         return MAgengtPettingZooEnv(env)
 
