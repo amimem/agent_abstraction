@@ -25,7 +25,7 @@ if __name__ == "__main__":
     tune.run(
         "DQN",
         stop={"episodes_total": 60000},
-        checkpoint_freq=1000,
+        checkpoint_freq=500,
         config={
             # Enviroment specific
             # "env": "battle_v3",
@@ -35,12 +35,20 @@ if __name__ == "__main__":
             "framework": "torch",
             "num_gpus": 1,
             "num_workers": 10,
+            "model": {
+                "dim": 15,
+                "conv_filters": [[32, [5, 5], 1],
+                                [32, [5, 5], 1],
+                                [32, [5, 5], 1],
+                                [32, [3, 3], 1]],
+            } ,
             # Method specific
             "multiagent": {
                 "policies": set(env.agents),
                 "policy_mapping_fn": (
                     lambda agent_id, episode, **kwargs: agent_id),
             },
+            # "train_batch_size": 600,
             # "log_level": "DEBUG",
             # "wandb": {
             #     "project": "marl",
