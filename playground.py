@@ -2,24 +2,9 @@ from ray import tune
 from ray.tune.registry import register_env
 from ray.rllib.env.wrappers.pettingzoo_env import PettingZooEnv
 from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
-# from pettingzoo.mpe import simple_push_v2
-# from pettingzoo.mpe import simple_adversary_v2
-# from pettingzoo.mpe import simple_spread_v2
-# from pettingzoo.mpe import simple_tag_v2
 from pettingzoo.magent import battle_v3
-# from pettingzoo.magent import adversarial_pursuit_v3
-# from pettingzoo.magent import gather_v3
-# from pettingzoo.magent import battlefield_v3
-# from pettingzoo.magent import combined_arms_v5
-# from pettingzoo.magent import tiger_deer_v3
-# import ray.rllib.contrib.maddpg as maddpg
-# import ray.rllib.agents.dqn as dqn  # DQNTrainer
-# import ray.rllib.agents.a3c.a2c as a2c  # A2CTrainer
-# import ray.rllib.agents.ddpg.td3 as td3  # TD3Trainer
-# from ray.tune.integration.wandb import WandbLogger
-# from ray.tune.integration.wandb import WandbLoggerCallback
-# from ray.tune.logger import DEFAULT_LOGGERS
 from pettingzoo.utils import to_parallel
+from magent_wrappers import MAgengtPettingZooEnv, MAgentParallelPettingZooEnv
 # import supersuit
 from supersuit import flatten_v0
 
