@@ -12,7 +12,7 @@ class MAgengtPettingZooEnv(PettingZooEnv):
         self.action_spaces = self.env.action_spaces
 
         # Get first action space, assuming all agents have equal space
-        self.observation_space = self.observation_spaces[self.agents[0]]
+        self.observation_space = self.env.state_space
         self.action_space = self.action_spaces[self.agents[0]]
 
         assert all(act_space == self.action_space
@@ -57,7 +57,7 @@ class MAgentParallelPettingZooEnv(ParallelPettingZooEnv):
         self.agents = self.par_env.possible_agents
 
         # Get dictionaries of obs_spaces and act_spaces
-        self.observation_spaces = self.env.observation_spaces
+        self.observation_space = self.env.state_space
         self.action_spaces = self.par_env.action_spaces
 
         # Get first action space, assuming all agents have equal space

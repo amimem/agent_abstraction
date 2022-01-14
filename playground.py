@@ -15,13 +15,12 @@ if __name__ == "__main__":
 
     def env_creator(args):
         env = battle_v3.env(map_size=15)
-        env = flatten_v0(env)
+        # env = flatten_v0(env)
         return MAgengtPettingZooEnv(env)
 
     env = env_creator({})
     register_env("battle_v3", env_creator)
     print(set(env.agents))
-    print(env.observation_space, env.observation_space.shape)
 
     tune.run(
         "DQN",
