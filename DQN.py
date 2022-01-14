@@ -17,7 +17,7 @@ if __name__ == "__main__":
     def env_creator(args):
         env = battle_v3.env(map_size=15, minimap_mode=True)
         env = flatten_v0(env)
-        return PettingZooEnv(env)
+        return MAgengtPettingZooEnv(env)
 
     env = env_creator({})
     register_env("battle_v3", env_creator)
