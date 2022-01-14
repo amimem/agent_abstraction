@@ -21,6 +21,7 @@ if __name__ == "__main__":
     env = env_creator({})
     register_env("battle_v3", env_creator)
     print(set(env.agents))
+    print(env.observation_space, env.observation_space.shape)
 
     tune.run(
         "DQN",
@@ -33,7 +34,7 @@ if __name__ == "__main__":
             # "simple_optimizer":True,
             # General
             "framework": "torch",
-            "num_gpus": 2,
+            "num_gpus": 1,
             "num_workers": 10,
             # Method specific
             "multiagent": {
