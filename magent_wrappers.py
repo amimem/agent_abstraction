@@ -2,11 +2,18 @@ from ray.rllib.env.wrappers.pettingzoo_env import PettingZooEnv
 from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
 
 class MAgengtPettingZooEnv(PettingZooEnv):
-    def __init__(self, env):
+    def __init__(self, env, flatten_dict_observations=False):
         super().__init__(env)
         
+        self.flatten_dict_observations = flatten_dict_observations
         # Get first action space, assuming all agents have equal space
         self.observation_space = self.env.state_space
+
+        if self.flatten_dict_observations:
+            new_shape = 1
+            for e in self.observation_space.shape:
+                new_shape *= e
+            self.observation_space.shape = (new_shape,)
 
     def step(self, action):
         self.env.step(action[self.env.agent_selection])
@@ -23,7 +30,12 @@ class MAgengtPettingZooEnv(PettingZooEnv):
             rew_d[a] = rew
             done_d[a] = done
             info_d[a] = info
-            state_d[a] = state
+
+            if self.flatten_dict_observations:
+                state_d[a] = state.reshape([-1])
+            else:
+                state_d[a] = state
+
             if self.env.dones[self.env.agent_selection]:
                 self.env.step(None)
             else:
@@ -42,7 +54,7 @@ class MAgengtPettingZooEnv(PettingZooEnv):
 
 
 class MAgentParallelPettingZooEnv(ParallelPettingZooEnv):
-    def __init__(self, env):
+    def __init__(self, env, flatten_dict_observations=False):
         super().__init__(env)
         
         # Get dictionaries of obs_spaces and act_spaces
