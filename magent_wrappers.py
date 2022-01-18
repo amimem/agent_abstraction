@@ -1,5 +1,6 @@
 from ray.rllib.env.wrappers.pettingzoo_env import PettingZooEnv
 from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
+from gym.spaces import Box
 
 class MAgengtPettingZooEnv(PettingZooEnv):
     def __init__(self, env, flatten_dict_observations=False):
@@ -13,7 +14,12 @@ class MAgengtPettingZooEnv(PettingZooEnv):
             new_shape = 1
             for e in self.observation_space.shape:
                 new_shape *= e
-            self.observation_space.shape = (new_shape,)
+
+            low = self.observation_space.low
+            high = self.observation_space.high
+            dtype = self.observation_space.dtype
+
+            self.observation_space = Box(low=low, high=high, shape=(new_shape,), dtype=dtype)
 
     def step(self, action):
         self.env.step(action[self.env.agent_selection])
