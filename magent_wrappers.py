@@ -43,28 +43,15 @@ class MAgengtPettingZooEnv(PettingZooEnv):
 
 class MAgentParallelPettingZooEnv(ParallelPettingZooEnv):
     def __init__(self, env):
-        self.par_env = env
-        # agent idx list
-        self.agents = self.par_env.possible_agents
-
+        super().__init__(env)
+        
         # Get dictionaries of obs_spaces and act_spaces
-        self.observation_space = self.env.state_space
-        self.action_spaces = self.par_env.action_spaces
-
-        # Get first action space, assuming all agents have equal space
-        self.observation_space = self.observation_spaces[self.agents[0]]
-        self.action_space = self.action_spaces[self.agents[0]]
-
-        assert all(act_space == self.action_space
-                   for act_space in self.par_env.action_spaces.values()), \
-            "Action spaces for all agents must be identical. Perhaps " \
-            "SuperSuit's pad_action_space wrapper can help (useage: " \
-            "`supersuit.aec_wrappers.pad_action_space(env)`"
-
-        self.reset()
+        self.observation_space = self.par_env.state_space
 
     def step(self, action_dict):
         obss, rews, dones, infos = self.par_env.step(action_dict)
         state = self.par_env.state()
+        for a in obss:
+            obss[a] = state
         dones["__all__"] = all(dones.values())
-        return state, rews, dones, infos
+        return obss, rews, dones, infos
