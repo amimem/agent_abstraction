@@ -14,9 +14,9 @@ if __name__ == "__main__":
     # ADQN - Apex DQN
 
     def env_creator(args):
-        env = battle_v3.env(map_size=42)
-        env = to_parallel(env)
-        return MAgentParallelPettingZooEnv(env)
+        env = battle_v3.env(map_size=15)
+        # env = to_parallel(env)
+        return MAgengtPettingZooEnv(env, flatten_dict_observations=True)
 
     env = env_creator({})
     register_env("battle_v3", env_creator)
