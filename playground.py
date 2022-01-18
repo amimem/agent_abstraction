@@ -5,7 +5,6 @@ from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
 from pettingzoo.magent import battle_v3
 from pettingzoo.utils import to_parallel
 from magent_wrappers import MAgengtPettingZooEnv, MAgentParallelPettingZooEnv
-# import supersuit
 from supersuit import flatten_v0
 import os
 
@@ -21,13 +20,15 @@ if __name__ == "__main__":
 
     env = env_creator({})
     register_env("battle_v3", env_creator)
-    print(set(env.agents))
+    print(set(env.agents), len(env.agents))
+
+    save_dir = os.getenv('SLURM_TMPDIR')
 
     tune.run(
         "DQN",
         stop={"episodes_total": 60000},
         checkpoint_freq=500,
-        local_dir=os.getenv('SLURM_TMPDIR'),
+        local_dir=save_dir,
         config={
             # Enviroment specific
             # "env": "battle_v3",
@@ -36,8 +37,9 @@ if __name__ == "__main__":
             # General
             "framework": "torch",
             "num_gpus": 1,
-            "num_workers": 9,
-            "model": {
+            "num_workers": 0,
+            # "model": {"dim": 42, "conv_filters": [[16, [4, 4], 2], [32, [4, 4], 2], [512, [11, 11], 1]]},
+            # "model": {
                 # "dim": 15,
                 # "conv_filters": [
                 #     [32, [5, 5], 1],
@@ -45,12 +47,20 @@ if __name__ == "__main__":
                 #     [128, [5, 5], 1],
                 #     [256, [3, 3], 1]
                 #     ],
-            },
+            # },
             # Method specific
              "multiagent": {
                 "policies": set(env.agents),
                 "policy_mapping_fn": (
                     lambda agent_id, episode, **kwargs: agent_id),
+                # Keep this many policies in the "policy_map" (before writing
+                # least-recently used ones to disk/S3).
+                # "policy_map_capacity": len(env.agents),
+                # Where to store overflowing (least-recently used) policies?
+                # Could be a directory (str) or an S3 location. None for using
+                # the default output dir.
+                # "policy_map_cache": save_dir,
+                # Function mapping agent ids to policy ids.
             },
             # "train_batch_size": 600,
             # "log_level": "DEBUG",
