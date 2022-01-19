@@ -74,3 +74,7 @@ if __name__ == "__main__":
         print("-- DQN --")
         result_dqn = dqn_trainer.train()
         print(pretty_print(result_dqn))
+
+        if i % 50 == 0:
+            checkpoint = dqn_trainer.save()
+            print("checkpoint saved at", checkpoint)
