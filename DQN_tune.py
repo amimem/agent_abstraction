@@ -24,45 +24,49 @@ if __name__ == "__main__":
     register_env("battle_v3", env_creator)
     print(set(env.agents), len(env.agents))
 
+    obs_space = env.observation_space
+    act_space = env.action_space
+
     policies = {
         "dqn_policy": (DQNTorchPolicy, obs_space, act_space, {}),
     }
 
     save_dir = os.getenv('SLURM_TMPDIR')
 
-    dqn_trainer = DQNTrainer(
-        env="battle_v3",
-        config={
-            "record_env": True,
-            "multiagent": {
-                "policies": set(env.agents),
-                "policy_mapping_fn":(
-                    lambda agent_id, episode, **kwargs: agent_id),
-                # Keep this many policies in the "policy_map" (before writing
-                # least-recently used ones to disk/S3).
-                # "policy_map_capacity": len(env.agents),
-                # Where to store overflowing (least-recently used) policies?
-                # Could be a directory (str) or an S3 location. None for using
-                # the default output dir.
-                # "policy_map_cache": save_dir,
-                # Function mapping agent ids to policy ids.
-            },
-            "model": {
-                # "fcnet_hiddens": [64],
-                "conv_filters": [32, [15, 15], 1],
-                # "vf_share_layers": True,
-            },
-            # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
-            "num_gpus": 1,
-            "num_workers": 0,
-            "framework": "torch",
-            # "log_level": "DEBUG",
-        })
+    dqn_config = {
+        "env":"battle_v3",
+        "record_env": True,
+        "multiagent": {
+            "policies": set(env.agents),
+            "policy_mapping_fn":(
+                lambda agent_id, episode, **kwargs: agent_id),
+            # Keep this many policies in the "policy_map" (before writing
+            # least-recently used ones to disk/S3).
+            # "policy_map_capacity": len(env.agents),
+            # Where to store overflowing (least-recently used) policies?
+            # Could be a directory (str) or an S3 location. None for using
+            # the default output dir.
+            # "policy_map_cache": save_dir,
+            # Function mapping agent ids to policy ids.
+        },
+        "model": {
+            # "fcnet_hiddens": [64],
+            "conv_filters": [
+                [32, [15, 15], 1],
+                ],
+            # "vf_share_layers": True,
+        },
+        # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
+        "num_gpus": 1,
+        "num_workers": 10,
+        "framework": "torch",
+        # "log_level": "DEBUG",
+    }
 
     tune.run(
-        dqn_trainer,
+        DQNTrainer,
+        config=dqn_config,
         stop={"episodes_total": 1000},
-        checkpoint_freq=100,
         local_dir=save_dir,
         checkpoint_freq=50,
         checkpoint_at_end=True,
