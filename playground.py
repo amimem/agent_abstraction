@@ -30,6 +30,8 @@ if __name__ == "__main__":
         stop={"episodes_total": 60000},
         checkpoint_freq=500,
         local_dir=save_dir,
+        checkpoint_freq=50,
+        checkpoint_at_end=True,
         config={
             # Enviroment specific
             # "env": "battle_v3",
@@ -61,8 +63,7 @@ if __name__ == "__main__":
                 # "policy_map_cache": save_dir,
                 # Function mapping agent ids to policy ids.
             },
-            checkpoint_freq=50,
-            checkpoint_at_end=True,
+            "record_env": True,
             # "train_batch_size": 600,
             # "log_level": "DEBUG",
             # "wandb": {
