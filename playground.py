@@ -5,8 +5,9 @@ from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
 from pettingzoo.magent import battle_v3
 from pettingzoo.utils import to_parallel
 from magent_wrappers import MAgengtPettingZooEnv, MAgentParallelPettingZooEnv
-from supersuit import flatten_v0
 import os
+
+os.environ["TUNE_MAX_PENDING_TRIALS_PG"] = "1"
 
 # Based on code from github.com/parametersharingmadrl/parametersharingmadrl
 if __name__ == "__main__":
@@ -16,7 +17,7 @@ if __name__ == "__main__":
     def env_creator(args):
         env = battle_v3.env(map_size=15)
         # env = to_parallel(env)
-        return MAgengtPettingZooEnv(env, flatten_dict_observations=True)
+        return MAgengtPettingZooEnv(env, flatten_dict_observations=False)
 
     env = env_creator({})
     register_env("battle_v3", env_creator)
@@ -37,17 +38,15 @@ if __name__ == "__main__":
             # General
             "framework": "torch",
             "num_gpus": 1,
-            "num_workers": 0,
+            "num_workers": 10,
             # "model": {"dim": 42, "conv_filters": [[16, [4, 4], 2], [32, [4, 4], 2], [512, [11, 11], 1]]},
-            # "model": {
-                # "dim": 15,
-                # "conv_filters": [
-                #     [32, [5, 5], 1],
-                #     [64, [5, 5], 1],
-                #     [128, [5, 5], 1],
-                #     [256, [3, 3], 1]
-                #     ],
-            # },
+            "model": {
+                # "fcnet_hiddens": [64],
+                "dim": 15,
+                "conv_filters": [
+                    [32, [15, 15], 1],
+                    ],
+            },
             # Method specific
              "multiagent": {
                 "policies": set(env.agents),
