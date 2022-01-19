@@ -10,13 +10,15 @@ from magent_wrappers import MAgengtPettingZooEnv, MAgentParallelPettingZooEnv
 import os
 from supersuit import flatten_v0
 
+os.environ["TUNE_MAX_PENDING_TRIALS_PG"] = "1"
+
 if __name__ == "__main__":
 
+    # set local_mode=True if OOM
     ray.init(include_dashboard=False)
 
     def env_creator(args):
-        env = battle_v3.env(map_size=15, minimap_mode=True)
-        env = flatten_v0(env)
+        env = battle_v3.env(map_size=15, minimap_mode=False)
         return MAgengtPettingZooEnv(env)
 
     env = env_creator({})
@@ -43,11 +45,11 @@ if __name__ == "__main__":
                 "policy_mapping_fn":(
                     lambda agent_id, episode, **kwargs: "dqn_policy"),
             },
-            # "model": {
-                # "fcnet_hiddens": [64]
-                # "conv_filters": [[13, 13, 5]],
+            "model": {
+                # "fcnet_hiddens": [64],
+                "conv_filters": [32, [15, 15], 1],
                 # "vf_share_layers": True,
-            # },
+            },
             # "num_sgd_iter": 6,
             # "rollout_fragment_length": 20,
             # Number of timesteps collected for each SGD round. This defines the size
