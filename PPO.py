@@ -3,11 +3,6 @@ from ray.rllib.env.wrappers.pettingzoo_env import PettingZooEnv
 from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
 from pettingzoo.utils import to_parallel
 from pettingzoo.magent import battle_v3
-from pettingzoo.magent import adversarial_pursuit_v3
-from pettingzoo.magent import gather_v3
-from pettingzoo.magent import battlefield_v3
-from pettingzoo.magent import combined_arms_v5
-from pettingzoo.magent import tiger_deer_v3
 import ray.rllib.contrib.maddpg as maddpg
 from ray.rllib.agents.dqn import DQNTrainer, DQNTFPolicy, DQNTorchPolicy
 from ray.rllib.agents.ppo import PPOTrainer, PPOTFPolicy, PPOTorchPolicy
