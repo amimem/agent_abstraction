@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--path', metavar='P', type=str, help='path')
 parser.add_argument('--checkpoint', metavar='C', type=str, help='checkpoint')
 parser.add_argument('--json', metavar='J', type=str, help='json')
-parser.add_argument('--eval', metavar='e', type=bool, help='path', default=False)
+parser.add_argument('--eval', metavar='e', type=bool, help='eval', default=False)
 args = parser.parse_args()
 
 def on_train_result(self, *, trainer: "Trainer", result: dict,
@@ -88,7 +88,7 @@ if __name__ == "__main__":
         # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
         "num_gpus": 1,
         "num_workers": 1,
-        "evaluation_num_workers":1,
+        "evaluation_num_workers":1 if args.eval else 0,
         "evaluation_num_episodes": 1,
         "framework": "torch",
         "output": base_path,
@@ -109,19 +109,16 @@ if __name__ == "__main__":
         print(trainer.evaluate())
 
     if not args.eval:
-        # home_path = os.environ['HOME']
-        prefix = os.path.basename(os.path.normpath(checkpoint_path))
+        prefix = args.checkpoint
         json_path = os.path.join(base_path, args.json)
         json = JsonReader(json_path)
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-        # base_path = home_path + '/battle-out/'
 
         ma_batch = json.next()
         p_batches = ma_batch.policy_batches
         s_batch = p_batches['red_0']
 
-        with open(base_path + prefix + '_states.npy', 'wb') as f:
+        with open(os.path.join(base_path, prefix + '_states.npy'), 'wb') as f:
             np.save(f, s_batch['obs'])
 
         s_batch = s_batch.to_device(device, framework="torch")
@@ -129,5 +126,5 @@ if __name__ == "__main__":
         for agent in set(env.agents):
             model_out = models[agent](s_batch)
             v = models[agent].get_state_value(model_out[0])
-            with open(base_path + prefix + f'_values_{agent}.npy', 'wb') as f:
+            with open(os.path.join(base_path, prefix + f'_values_{agent}.npy'), 'wb') as f:
                 np.save(f, v.cpu().detach().numpy())
