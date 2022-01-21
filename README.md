@@ -9,11 +9,9 @@ source /etc/profile
 Then:
 ```zsh
 module load python/3.7 pytorch/1.8.1
-cd ~
-git clone https://github.com/amimem/marl.git
-cd marl
-python -m venv marl_env
-source marlenv/bin/activate
+cd ~; git clone https://github.com/amimem/marl.git
+cd marl; python -m venv marl_env
+source marl_env/bin/activate
 pip install --no-index -r requirements.txt
 ```
 
