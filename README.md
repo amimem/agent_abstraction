@@ -10,15 +10,15 @@ Then:
 ```zsh
 module load python/3.7 pytorch/1.8.1
 cd ~; git clone https://github.com/amimem/marl.git
-cd marl; python -m venv marl_env
-source marl_env/bin/activate
+cd marl; python -m venv ./env/marl_env
+source ./env/marl_env/bin/activate
 pip install --no-index -r requirements.txt
 ```
 
 Once the setup is done, for future use just:
 ```zsh
 module load python/3.7 pytorch/1.8.1
-source ~/marl/marl_env/bin/activate
+source ~/marl/.env/marl_env/bin/activate
 ```
 
 And run the script that you want:
