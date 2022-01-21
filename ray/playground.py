@@ -30,7 +30,6 @@ if __name__ == "__main__":
         stop={"episodes_total": 60000},
         checkpoint_freq=500,
         local_dir=save_dir,
-        checkpoint_freq=50,
         checkpoint_at_end=True,
         config={
             # Enviroment specific
