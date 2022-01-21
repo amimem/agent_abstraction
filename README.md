@@ -18,8 +18,7 @@ pip install --no-index -r requirements.txt
 Once the setup is done, for future use just:
 ```zsh
 module load python/3.7 pytorch/1.8.1
-cd ~/marl
-source marlenv/bin/activate
+source ~/marl/marl_env/bin/activate
 ```
 
 And run the script that you want:
