@@ -23,7 +23,7 @@ source ~/marl/.env/marl_env/bin/activate
 
 And run the script that you want:
 ```zsh
-python playground.py
+python ray/playground.py
 ```
 
 
@@ -31,6 +31,6 @@ python playground.py
 The code does not work on CC due to dependency and package build issues.
 
 ## Script Help:
-For now, main experiments are in `playgorund.py`, once the reliablity and usability of data is established, we can move the setting to separate files (`DQN.py`, `PPO.py` for example).
+For now `ray` includes all the scripts; main experiments are in `playgorund.py`, once the reliablity and usability of data is established, we can move the setting to separate files (`DQN.py`, `PPO.py` for example).
 
 `magent_wrappers.py` includes the custom wrappers we wrote for RLLib + PettingZoo. Only the AEC (non-parallel) wrapper is tested.
