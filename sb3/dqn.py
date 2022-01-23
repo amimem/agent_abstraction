@@ -4,7 +4,7 @@ from stable_baselines3.dqn import CnnPolicy
 from pettingzoo.magent import battle_v3
 import supersuit as ss
 
-env = battle_v3(map_size=13)
+env = battle_v3.env(map_size=13)
 model = DQN(CnnPolicy, env)
 model.learn(total_timesteps=2000000)
 model.save("dqn_policy")
