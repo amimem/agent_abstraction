@@ -132,6 +132,7 @@ stable-baselines3==1.4.0
 subprocess32==3.5.4
 SuperSuit==3.3.2
 tabulate==0.8.9
+tensorboard==2.8.0
 tensorboard-data-server==0.6.1
 tensorboard-plugin-wit==1.8.1
 tensorboardX==2.4.1
