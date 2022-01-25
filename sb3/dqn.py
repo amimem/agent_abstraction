@@ -24,6 +24,7 @@ run = wandb.init(
 
 env = battle_v3.env(map_size=13)
 env = to_parallel(env)
+env = ss.black_death_v2(env)
 env = ss.pettingzoo_env_to_vec_env_v1(env)
 env = ss.concat_vec_envs_v1(env, 1, num_cpus=0, base_class='stable_baselines3')
 model = DQN(MlpPolicy, env, verbose=1)
