@@ -34,7 +34,7 @@ model.learn(total_timesteps=config["total_timesteps"],
                 verbose=2,
                 )
             )
-model.save("dqn_policy")
+model.save("dqn_policy_{run.id}")
 run.finish()
 
 # Test trained agent
