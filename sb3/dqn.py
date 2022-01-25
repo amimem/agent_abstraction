@@ -11,7 +11,7 @@ import wandb
 
 config = {
     "policy_type": type(MlpPolicy),
-    "total_timesteps": 1e4,
+    "total_timesteps": 1e7,
     "env_name": "battle_v3",
 }
 run = wandb.init(
