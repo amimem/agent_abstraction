@@ -27,9 +27,9 @@ if __name__ == "__main__":
 
     tune.run(
         "DQN",
-        stop={"episodes_total": 60000},
-        checkpoint_freq=500,
+        stop={"episodes_total": 1000},
         local_dir=save_dir,
+        checkpoint_freq=500,
         checkpoint_at_end=True,
         config={
             # Enviroment specific
@@ -39,7 +39,8 @@ if __name__ == "__main__":
             # General
             "framework": "torch",
             "num_gpus": 1,
-            "num_workers": 10,
+            "num_workers": 9,
+            # "num_envs_per_worker": 0.25,
             # "model": {"dim": 42, "conv_filters": [[16, [4, 4], 2], [32, [4, 4], 2], [512, [11, 11], 1]]},
             "model": {
                 # "fcnet_hiddens": [64],
@@ -62,7 +63,7 @@ if __name__ == "__main__":
                 # "policy_map_cache": save_dir,
                 # Function mapping agent ids to policy ids.
             },
-            "record_env": True,
+            # "record_env": True,
             # "train_batch_size": 600,
             # "log_level": "DEBUG",
             # "wandb": {
