@@ -15,7 +15,7 @@ os.environ["TUNE_MAX_PENDING_TRIALS_PG"] = "1"
 if __name__ == "__main__":
 
     # set local_mode=True if OOM
-    ray.init(include_dashboard=False)
+    ray.init(include_dashboard=False, num_cpus=10)
 
     def env_creator(args):
         env = battle_v3.env(map_size=15, minimap_mode=False)
@@ -47,7 +47,7 @@ if __name__ == "__main__":
             },
             "model": {
                 # "fcnet_hiddens": [64],
-                "conv_filters": [32, [15, 15], 1],
+                "conv_filters": [[32, [15, 15], 1]],
                 # "vf_share_layers": True,
             },
             # "num_sgd_iter": 6,
@@ -59,8 +59,8 @@ if __name__ == "__main__":
             # minibatch size within each epoch.
             # "sgd_minibatch_size": 20,
             # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
-            "num_gpus": 2,
-            "num_workers": 10,
+            "num_gpus": 1,
+            "num_workers": 9,
             "framework": "torch",
             # "log_level": "DEBUG",
         })
