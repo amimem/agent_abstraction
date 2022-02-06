@@ -6,6 +6,7 @@ from pettingzoo.magent import battle_v3
 from pettingzoo.utils import to_parallel
 from magent_wrappers import MAgengtPettingZooEnv, MAgentParallelPettingZooEnv
 import os
+import ray
 
 os.environ["TUNE_MAX_PENDING_TRIALS_PG"] = "1"
 
@@ -13,6 +14,9 @@ os.environ["TUNE_MAX_PENDING_TRIALS_PG"] = "1"
 if __name__ == "__main__":
     # RDQN - Rainbow DQN
     # ADQN - Apex DQN
+
+    ray.init(include_dashboard=False, num_cpus=10, num_gpus=1, object_store_memory=60*10**9 ,_memory=90*10**9)
+    assert ray.is_initialized() == True
 
     def env_creator(args):
         env = battle_v3.env(map_size=15)
@@ -27,9 +31,9 @@ if __name__ == "__main__":
 
     tune.run(
         "DQN",
-        stop={"episodes_total": 1000},
+        stop={"episodes_total": 60000},
         local_dir=save_dir,
-        checkpoint_freq=500,
+        checkpoint_freq=50000,
         checkpoint_at_end=True,
         config={
             # Enviroment specific
