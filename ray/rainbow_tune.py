@@ -52,7 +52,14 @@ if __name__ == "__main__":
     policies = set(env.agents) if not args.team else gen_policies(args.number)
 
     def policy_map(agent_id, episode, **kwargs):
-        return agent_id
+        if args.team:
+            assert isinstance(agent_id, str)
+            if "red" in agent_id:
+                return "policy_0"
+            elif "blue" in agent_id:
+                return "policy_1"
+        else:
+            return agent_id
 
     save_dir = os.getenv('SLURM_TMPDIR')
 
