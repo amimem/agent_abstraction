@@ -40,7 +40,16 @@ if __name__ == "__main__":
     register_env("battle_v3", env_creator)
     print(set(env.agents), len(env.agents))
 
-    policies = set(env.agents)
+    obs_space = env.observation_space
+    act_space = env.action_space
+
+    def gen_policies(num_policies):
+        policies = {}
+        for i in range(num_policies):
+            policies[f"policy_{i}"] = (DQNTorchPolicy, obs_space, act_space, {})
+        return policies
+
+    policies = set(env.agents) if not args.team else gen_policies(args.number)
 
     def policy_map(agent_id, episode, **kwargs):
         return agent_id
