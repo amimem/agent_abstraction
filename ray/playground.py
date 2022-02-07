@@ -9,13 +9,14 @@ import os
 import ray
 
 os.environ["TUNE_MAX_PENDING_TRIALS_PG"] = "1"
+num_cpus = int(os.environ.get('SLURM_CPUS_PER_TASK'))
 
 # Based on code from github.com/parametersharingmadrl/parametersharingmadrl
 if __name__ == "__main__":
     # RDQN - Rainbow DQN
     # ADQN - Apex DQN
 
-    ray.init(include_dashboard=False, num_cpus=10, num_gpus=1, object_store_memory=60*10**9 ,_memory=90*10**9)
+    ray.init(include_dashboard=False, num_cpus=num_cpus, num_gpus=1, object_store_memory=60*10**9 ,_memory=90*10**9)
     assert ray.is_initialized() == True
 
     def env_creator(args):
@@ -43,7 +44,7 @@ if __name__ == "__main__":
             # General
             "framework": "torch",
             "num_gpus": 1,
-            "num_workers": 9,
+            "num_workers": num_cpus-1,
             # "num_envs_per_worker": 0.25,
             # "model": {"dim": 42, "conv_filters": [[16, [4, 4], 2], [32, [4, 4], 2], [512, [11, 11], 1]]},
             "model": {

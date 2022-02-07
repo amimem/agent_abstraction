@@ -11,11 +11,12 @@ import os
 from supersuit import flatten_v0
 
 os.environ["TUNE_MAX_PENDING_TRIALS_PG"] = "1"
+num_cpus = int(os.environ.get('SLURM_CPUS_PER_TASK'))
 
 if __name__ == "__main__":
 
     # set local_mode=True if OOM
-    ray.init(include_dashboard=False, num_cpus=10)
+    ray.init(include_dashboard=False, num_cpus=num_cpus)
 
     def env_creator(args):
         env = battle_v3.env(map_size=15, minimap_mode=False)
@@ -60,7 +61,7 @@ if __name__ == "__main__":
             # "sgd_minibatch_size": 20,
             # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
             "num_gpus": 1,
-            "num_workers": 9,
+            "num_workers": num_cpus-1,
             "framework": "torch",
             # "log_level": "DEBUG",
         })

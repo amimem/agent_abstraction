@@ -9,11 +9,15 @@ from ray.rllib.agents.dqn import DQNTrainer, DQNTorchPolicy
 import os
 
 os.environ["TUNE_MAX_PENDING_TRIALS_PG"] = "1"
+num_cpus = int(os.environ.get('SLURM_CPUS_PER_TASK'))
 
 # Based on code from github.com/parametersharingmadrl/parametersharingmadrl
 if __name__ == "__main__":
     # RDQN - Rainbow DQN
     # ADQN - Apex DQN
+
+    ray.init(include_dashboard=False, num_cpus=num_cpus, num_gpus=1)
+    assert ray.is_initialized() == True
 
     def env_creator(args):
         env = battle_v3.env(map_size=15)
