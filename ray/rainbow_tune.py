@@ -29,6 +29,11 @@ if __name__ == "__main__":
     register_env("battle_v3", env_creator)
     print(set(env.agents), len(env.agents))
 
+    policies = set(env.agents)
+
+    def policy_map(agent_id, episode, **kwargs):
+        return agent_id
+
     save_dir = os.getenv('SLURM_TMPDIR')
 
     tune.run(
@@ -61,9 +66,8 @@ if __name__ == "__main__":
             # },
             # Method specific
              "multiagent": {
-                "policies": set(env.agents),
-                "policy_mapping_fn": (
-                    lambda agent_id, episode, **kwargs: agent_id),
+                "policies": policies,
+                "policy_mapping_fn": policy_map,
                 # Keep this many policies in the "policy_map" (before writing
                 # least-recently used ones to disk/S3).
                 # "policy_map_capacity": len(env.agents),
