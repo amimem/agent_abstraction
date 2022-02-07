@@ -5,12 +5,23 @@ from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
 from pettingzoo.magent import battle_v3
 from pettingzoo.utils import to_parallel
 from magent_wrappers import MAgengtPettingZooEnv, MAgentParallelPettingZooEnv
+from ray.rllib.agents.dqn import DQNTrainer, DQNTFPolicy, DQNTorchPolicy
+from argparse import ArgumentParser
 import os
 import ray
 
 os.environ["TUNE_MAX_PENDING_TRIALS_PG"] = "1"
 num_cpus = int(os.environ.get('SLURM_CPUS_PER_TASK'))
 print("num cpus are ", num_cpus)
+
+parser = ArgumentParser()
+
+parser.add_argument("-t", "--team", action="store_true",
+                    help="use separate policies for each team")
+parser.add_argument("-n", "--number", type=int, default=1,
+                    help="number of policies per team")
+
+args = parser.parse_args()
 
 # Based on code from github.com/parametersharingmadrl/parametersharingmadrl
 if __name__ == "__main__":
