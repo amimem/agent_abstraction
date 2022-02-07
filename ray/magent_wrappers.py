@@ -4,9 +4,12 @@ from gym.spaces import Box
 
 class MAgengtPettingZooEnv(PettingZooEnv):
     def __init__(self, env, flatten_dict_observations=False):
-        super().__init__(env)
-        
+
+        # the overrridden reset function in called inside super, so flatten_dict_observations must be defined before that
         self.flatten_dict_observations = flatten_dict_observations
+
+        super().__init__(env)
+
         # Get first action space, assuming all agents have equal space
         self.observation_space = self.env.state_space
 
@@ -51,7 +54,7 @@ class MAgengtPettingZooEnv(PettingZooEnv):
     def reset(self):
         self.env.reset()
         return {
-            self.env.agent_selection: self.env.state()
+            self.env.agent_selection: self.env.state() if not self.flatten_dict_observations else self.env.state().reshape([-1])
         }
 
 
