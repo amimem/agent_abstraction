@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     def gen_policies(num_policies):
         policies = {}
-        for i in range(num_policies):
+        for i in range(num_policies*2):
             policies[f"policy_{i}"] = (DQNTorchPolicy, obs_space, act_space, {})
         return policies
 
