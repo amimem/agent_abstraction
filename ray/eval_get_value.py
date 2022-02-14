@@ -12,6 +12,7 @@ import torch
 import os
 import argparse
 import numpy as np
+from pathlib import Path
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--path', metavar='P', type=str, help='path')
@@ -59,7 +60,9 @@ if __name__ == "__main__":
     }
 
     base_path = args.path
-    checkpoint_path = os.path.join(base_path, args.checkpoint)
+    p = Path(base_path)
+
+    checkpoint_paths = [f for f in p.iterdir() if f.is_dir()]
     print("path is ", base_path)
 
     dqn_config = {
@@ -97,34 +100,35 @@ if __name__ == "__main__":
 
     
     trainer=DQNTrainer(config=dqn_config)
-    trainer.restore(checkpoint_path)
 
-    models = {}
-    for agent in set(env.agents):
-        models[agent] = trainer.get_policy(agent).model
+    for path in checkpoint_paths:
+        trainer.restore(path)
+
+        models = {}
+        for agent in set(env.agents):
+            models[agent] = trainer.get_policy(agent).model
     
-    # print(models['red_0'])
+        # print(models['red_0'])
 
-    if args.eval:
         print(trainer.evaluate())
 
-    if not args.eval:
-        prefix = args.checkpoint
-        json_path = os.path.join(base_path, args.json)
-        json = JsonReader(json_path)
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        for file in os.listdir(path):
+            if file.endswith(".json"):
+                json_path = os.path.join("/mydir", file)
+                json = JsonReader(json_path)
+                device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        ma_batch = json.next()
-        p_batches = ma_batch.policy_batches
-        s_batch = p_batches['red_0']
+                ma_batch = json.next()
+                p_batches = ma_batch.policy_batches
+                s_batch = p_batches['red_0']
 
-        with open(os.path.join(base_path, prefix + '_states.npy'), 'wb') as f:
-            np.save(f, s_batch['obs'])
+                with open(path + '_states.npy', 'wb') as f:
+                    np.save(f, s_batch['obs'])
 
-        s_batch = s_batch.to_device(device, framework="torch")
+                s_batch = s_batch.to_device(device, framework="torch")
 
-        for agent in set(env.agents):
-            model_out = models[agent](s_batch)
-            v = models[agent].get_state_value(model_out[0])
-            with open(os.path.join(base_path, prefix + f'_values_{agent}.npy'), 'wb') as f:
-                np.save(f, v.cpu().detach().numpy())
+                for agent in set(env.agents):
+                    model_out = models[agent](s_batch)
+                    v = models[agent].get_state_value(model_out[0])
+                    with open(path + f'_values_{agent}.npy', 'wb') as f:
+                        np.save(f, v.cpu().detach().numpy())
