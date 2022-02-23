@@ -131,3 +131,9 @@ dmypy.json
 # etc
 .no_git/
 wandb/
+
+# graphic files
+*.pdf
+
+# data folders
+data/
