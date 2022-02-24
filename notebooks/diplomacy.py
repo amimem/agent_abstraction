@@ -7,6 +7,7 @@ import json
 import itertools
 import os
 import json
+import argparse
 
 # Load the json data
 def load_jsonl(path: str, num_games: int = 30, mmap: bool = False, start_index = 0, completed_only: bool = False):
@@ -323,10 +324,14 @@ def get_triples_presence(game_df, triples):
 
 if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--path', metavar='P', type=str, help='path')
+    args = parser.parse_args()
+
     jobid = os.getenv('SLURM_ARRAY_TASK_ID')
     start_index = (int(jobid))*100
     num_games = 100
-    path = "./standard_no_press.jsonl"
+    path = args.path
     games_jsons = load_jsonl(path, num_games=num_games, mmap=False, completed_only=True)
 
     # Convert to a pandas dataframe
