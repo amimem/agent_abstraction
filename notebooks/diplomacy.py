@@ -326,12 +326,13 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--path', metavar='P', type=str, help='path')
+    parser.add_argument('--dataset', metavar='D', type=str, help='path')
     args = parser.parse_args()
 
     jobid = os.getenv('SLURM_ARRAY_TASK_ID')
     start_index = (int(jobid))*100
     num_games = 100
-    path = args.path
+    path = os.path.join(args.path, args.dataset)
     games_jsons = load_jsonl(path, num_games=num_games, mmap=False, completed_only=True)
 
     # Convert to a pandas dataframe
@@ -360,7 +361,7 @@ if __name__ == "__main__":
     game_phase_df_list = []
     for idx, game_id in enumerate(unique_games):
         phases_df_list = []
-        print(idx, game_id)
+        print(idx, game_id, flush=True)
         s_dict = {}
         d_dict = {}
         _id = 1
@@ -386,19 +387,19 @@ if __name__ == "__main__":
     cdf_sf['phase_num']=cdf_sf.phase_name.apply(lambda x: float(x[1:-1]+('.0' if x[0]=='S' else '.5')))
 
     game_tiple_presence = {}
-    for game_id in unique_games:
+    for idx, game_id in enumerate(unique_games):
         assert type(game_id) is str, (game_id, "is not a string")
-        print(game_id)
+        print(idx, game_id, flush=True)
         game_df = cdf_sf.loc[cdf_sf['game_id'] == game_id]
         
         if game_df.unique_unit_id.nunique() == game_df.unique_unit_id.max():
             triples = get_triples(game_df)
             try:
                 emp = get_triples_presence(game_df, triples)
-                print(emp, len(triples))
+                print(emp, len(triples), flush=True)
                 game_tiple_presence[game_id] = triples
             except AssertionError as msg:
-                print(msg)
-        
-    with open(f'game_tiple_presence_{start_index}_{num_games}_{jobid}.json', 'w') as file:          
+                print(msg, flush=True)
+    
+    with open(f'{args.path}/game_tiple_presence_{start_index}_{num_games}_{jobid}.json', 'w') as file:          
         json.dump(game_tiple_presence, file, indent=4, sort_keys=True,)
