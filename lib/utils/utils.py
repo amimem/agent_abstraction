@@ -318,3 +318,16 @@ def get_triples_presence(game_df, triples):
         triple['min_phase_num'] = float(min_phase_num)
         triple['max_min_diff'] = float(max_min_diff)
     return empty_eligible_phaes
+
+
+def gen_triple_rows(game_tiple_presence):
+    row = {}
+    for game in game_tiple_presence:
+        row['game_id'] = game
+        for triple in game_tiple_presence[game]:
+            row['player_i'] = triple['player_i']
+            row['player_j'] = triple['player_j']
+            row['min_phase_num'] = triple['min_phase_num']
+            row['max_phase_num'] = triple['max_phase_num']
+            row['triple'] = triple['triple']
+            yield row
