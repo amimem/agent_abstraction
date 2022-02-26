@@ -261,7 +261,7 @@ def assign_unit_id(phase_df, source_unit_id_map, dest_unit_id_map, _id, discard_
 def replace_dislodged_units(phases_cdf, dislodged_df):
     for idx, row in dislodged_df.iterrows():
         cond = phases_cdf["game_id"].apply(lambda x: x == row.game_id) & phases_cdf["type"].apply(lambda x: x == row.type) & phases_cdf["current_location"].apply(lambda x: x == row.current_location) & phases_cdf["phase_id"].apply(lambda x: x < row.phase_id) & phases_cdf["results"].apply(lambda x: 'dislodged' in x)
-        assert phases_cdf.loc[cond].empty == False, (game_id, row)
+        assert phases_cdf.loc[cond].empty == False, (row.game_id, row)
         c = phases_cdf.loc[cond].iloc[-1]['coordinator']
         phases_cdf.loc[idx,'coordinator'] = c
 
@@ -329,5 +329,7 @@ def gen_triple_rows(game_tiple_presence):
             row['player_j'] = triple['player_j']
             row['min_phase_num'] = triple['min_phase_num']
             row['max_phase_num'] = triple['max_phase_num']
-            row['triple'] = triple['triple']
+            row['triple_0'] = triple['triple'][0]
+            row['triple_1'] = triple['triple'][1]
+            row['triple_2'] = triple['triple'][2]
             yield row
