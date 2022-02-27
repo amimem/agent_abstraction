@@ -1,4 +1,5 @@
 
+from cmath import nan
 import json
 import pandas as pd
 import numpy as np
@@ -312,8 +313,28 @@ def get_triples_presence(game_df, triples):
         max_min_diff = max_phase_num - min_phase_num
         if len(unqiue_eligible_phases):
             assert (max_min_diff/0.5 + 1) == len(unqiue_eligible_phases) , ("values are not contiguous", len(unqiue_eligible_phases), unqiue_eligible_phases, max_min_diff, game_df["game_id"].unique(), triple)
+
+            if max_min_diff:
+                pivot_df = eligible_phases[["action", "phase_num", "unique_unit_id"]].pivot_table(values='action', index=eligible_phases.unique_unit_id, columns='phase_num', aggfunc='first')
+                tiple_array = np.array(triple['triple'])
+                same_indice = tiple_array[[0,1]]
+                diff_indice = tiple_array[[0,2]]
+
+                joint_i = len(pivot_df.loc[same_indice].T.drop_duplicates())
+                joint_j = len(pivot_df.loc[diff_indice].T.drop_duplicates())
+
+                pivot_df['unit_counts'] = pivot_df.nunique(axis=1)
+
+                prod_i = pivot_df.loc[same_indice, 'unit_counts'].values.prod()
+                prod_j = pivot_df.loc[diff_indice, 'unit_counts'].values.prod()
+
+                triple['factor_same'] = prod_i/ float(joint_i)
+                triple['factor_diff'] = prod_j/ float(joint_j)
+                triple['table'] = pivot_df.to_dict(orient='index')
+
         else:
             empty_eligible_phaes += 1
+            
         triple['max_phase_num'] = float(max_phase_num)
         triple['min_phase_num'] = float(min_phase_num)
         triple['max_min_diff'] = float(max_min_diff)
@@ -332,4 +353,6 @@ def gen_triple_rows(game_tiple_presence):
             row['triple_0'] = triple['triple'][0]
             row['triple_1'] = triple['triple'][1]
             row['triple_2'] = triple['triple'][2]
+            row['factor_same'] = triple['factor_same'] if 'factor_same' in triple else nan
+            row['factor_diff'] = triple['factor_diff'] if 'factor_diff' in triple else nan
             yield row
