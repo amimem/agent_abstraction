@@ -25,17 +25,22 @@ if __name__ == "__main__":
     for idx in range(start_index, end_index):
         print(idx)
         path = f"{args.path}/jsons/game_tiple_presence_{idx*100}_{(idx+1)*100}_{idx}.json"
-        with open(f'{path}', 'r') as file:
-            game_triple_presence = json.load(file)
+        try:
+            with open(f'{path}', 'r') as file:
+                game_triple_presence = json.load(file)
 
-        all_records = []
-        for row in utils.gen_triple_rows(game_triple_presence):
-            all_records.append(row.copy())
+            all_records = []
+            for row in utils.gen_triple_rows(game_triple_presence):
+                all_records.append(row.copy())
 
-        df = pd.DataFrame.from_records(all_records)
-        df = df.dropna()
+            df = pd.DataFrame.from_records(all_records)
+            df = df.dropna()
 
-        game_df_array.append(df)
+            game_df_array.append(df)
+            print("appended", path)
+
+        except:
+            print("path does not exist", path)
 
     cdf = pd.concat(game_df_array)
     del game_df_array
