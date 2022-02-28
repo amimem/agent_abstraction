@@ -90,4 +90,4 @@ if __name__ == "__main__":
                 print(msg, flush=True)
     
     with open(f'{args.path}/game_tiple_presence_{start_index}_{start_index+num_games}_{jobid}.json', 'w') as file:          
-        json.dump(game_tiple_presence, file, indent=4, sort_keys=True,)
+        json.dump(game_tiple_presence, file, indent=4)
