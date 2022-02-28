@@ -8,6 +8,7 @@ import json
 import itertools
 import os
 import json
+import matplotlib.pyplot as plt
 
 # Load the json data
 def load_jsonl(path: str, num_games: int = 30, mmap: bool = False, start_index = 0, completed_only: bool = False):
@@ -357,3 +358,38 @@ def gen_triple_rows(game_tiple_presence):
             row['factor_same'] = triple['factor_same'] if 'factor_same' in triple else nan
             row['factor_diff'] = triple['factor_diff'] if 'factor_diff' in triple else nan
             yield row
+
+def plot(df, path):
+
+    window_vec=np.arange(0.5,3.5,0.5)
+    fig,ax=plt.subplots(len(window_vec),3,figsize=(12,3*len(window_vec)))
+    binvec=np.linspace(1,3,60)
+
+    for wit,window_len in enumerate(window_vec):
+        tmp_df = df.loc[df.max_min_diff == window_len, ['factor_same', 'factor_diff']]
+        total_value_counts = tmp_df.value_counts()
+        window_pair_index_values = total_value_counts.index.values
+        window_pair_values = total_value_counts.values
+        l1,l2=zip(*list(window_pair_index_values))
+
+        ax[wit,0].scatter(l1,l2,s=list(window_pair_values*1000/window_pair_values.sum()))
+        ax[wit,0].plot([binvec[0], binvec[-1]],[binvec[0],binvec[-1]],'k--')
+        ax[wit,0].set_ylabel('different')
+        ax[wit,0].set_xlabel('same')
+        dstrvec=['same','different']
+        counts,bins=np.histogram(tmp_df.factor_same,bins=binvec)
+        ax[wit,1].plot(bins[:-1],counts,label=dstrvec[0])
+        counts,bins=np.histogram(tmp_df.factor_diff,bins=binvec)
+        ax[wit,1].plot(bins[:-1],counts,label=dstrvec[1])
+        ax[wit,1].legend(frameon=False)
+        ax[wit,1].set_title('window size '+str(int(window_len*2))+' steps')
+
+        data=tmp_df.factor_same - tmp_df.factor_diff
+        counts,bins=np.histogram(data,bins=np.linspace(-binvec[-1],binvec[-2],len(binvec)*2))
+        ax[wit,2].plot(bins[:-1],counts)
+        ax[wit,2].set_xlabel('same-different')
+        ax[wit,2].plot([np.mean(data)]*2,ax[wit,2].get_ylim(),'k--')
+
+    fig.tight_layout()
+    save_path = f"{path}/'same_diff_ver_windowsize.pdf"
+    fig.savefig(save_path,format='pdf',dpi=300,bbox_inches='tight')
