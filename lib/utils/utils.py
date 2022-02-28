@@ -315,7 +315,7 @@ def get_triples_presence(game_df, triples):
             assert (max_min_diff/0.5 + 1) == len(unqiue_eligible_phases) , ("values are not contiguous", len(unqiue_eligible_phases), unqiue_eligible_phases, max_min_diff, game_df["game_id"].unique(), triple)
 
             if max_min_diff:
-                pivot_df = eligible_phases[["action", "phase_num", "unique_unit_id"]].pivot_table(values='action', index=eligible_phases.unique_unit_id, columns='phase_num', aggfunc='first')
+                pivot_df = eligible_phases.groupby(['unique_unit_id','phase_num'])['action'].aggregate('first').unstack()
                 tiple_array = np.array(triple['triple'])
                 same_indice = tiple_array[[0,1]]
                 diff_indice = tiple_array[[0,2]]
