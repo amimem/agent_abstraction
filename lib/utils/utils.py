@@ -80,6 +80,7 @@ def flatten_json(input):
                     unit = order.split()[0]+ ' ' + order.split()[1]
                     if input['results']:
                         out['results'] = input['results'][unit]
+                        out['results'] = list(filter(None, out['results']))
                     else:
                         print("empty results")
                         print(order)
@@ -137,6 +138,7 @@ def flatten_json(input):
                 out['type'] = unit.split()[0]
                 out['current_location'] = unit.split()[1]
                 out['results'] = input['results'][unit]
+                out['results'] = list(filter(None, out['results']))
                 if not (total_len == 0 and is_movement):
                     out['action'] = -2 # not in orders and only in result // only happens for 
                 else:
@@ -145,7 +147,7 @@ def flatten_json(input):
                 yield(out)
 
 
-def assign_unit_id(phase_df, source_unit_id_map, dest_unit_id_map, _id, discard_disband_creation=False):
+def assign_unit_id(phase_df, source_unit_id_map, dest_unit_id_map, _id):
 
     # fror each row in the phase df
     for idx, row in phase_df.iterrows():
@@ -158,11 +160,13 @@ def assign_unit_id(phase_df, source_unit_id_map, dest_unit_id_map, _id, discard_
         source_unit = (row['type'] + ' ' + row['current_location'], row['coordinator'])
 
         # if the location is not in the map, add it to the map (in other phases the same unit can be used, hence checking the condition _ dictionaries are global, have data across phases)
+        if row['action'] == 'B':
+            if source_unit in source_unit_id_map:
+                print("build before disband", source_unit, source_unit_id_map[source_unit], _id)
+                source_unit_id_map[source_unit] = _id 
+                _id += 1
+
         if source_unit not in source_unit_id_map:
-            # if discard_disband_creation:
-                # if row['action'] == 'D':
-                #     print("disbanding a unit that does not exist", row)
-                    # continue
             source_unit_id_map[source_unit] = _id
             _id += 1
 
@@ -199,19 +203,14 @@ def assign_unit_id(phase_df, source_unit_id_map, dest_unit_id_map, _id, discard_
 
         elif row['action'] == 'D':
             result = row['results']
-            # if row.phase_id == 23:
-            # print(result, "here")
-            # print(result, type(result),isinstance(result, list), "no")
             assert source_unit in source_unit_id_map
             if isinstance(result, list):
                 if len(result) == 0:
                     source_unit_id_map.pop(source_unit)
                     # del source_unit_id_map[source_unit]
-                    # if row.phase_id == 23:
-                    # print("popped it out")
                 elif 'disband' in result:
                     source_unit_id_map.pop(source_unit)
-                elif 'void' in result:
+                elif 'void' in result: # void means it is not the unit of the curent phase
                     print("void disband", row)
             else:
                  print(result, type(result),isinstance(result, list), "yes")
@@ -263,8 +262,9 @@ def replace_dislodged_units(phases_cdf, dislodged_df):
     for idx, row in dislodged_df.iterrows():
         cond = phases_cdf["game_id"].apply(lambda x: x == row.game_id) & phases_cdf["type"].apply(lambda x: x == row.type) & phases_cdf["current_location"].apply(lambda x: x == row.current_location) & phases_cdf["phase_id"].apply(lambda x: x < row.phase_id) & phases_cdf["results"].apply(lambda x: 'dislodged' in x)
         assert phases_cdf.loc[cond].empty == False, (row.game_id, row)
-        c = phases_cdf.loc[cond].iloc[-1]['coordinator']
-        phases_cdf.loc[idx,'coordinator'] = c
+        c = phases_cdf.loc[cond].iloc[-1]
+        phases_cdf.loc[idx,'coordinator'] = c.coordinator
+        phases_cdf.loc[idx,'unique_unit_id'] = c.unique_unit_id
 
 
 #https://stackoverflow.com/questions/45655936/how-to-test-all-items-of-a-list-are-disjoint
