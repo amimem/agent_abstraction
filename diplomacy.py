@@ -21,7 +21,7 @@ if __name__ == "__main__":
     start_index = (int(jobid))*100
     num_games = 100
     path = os.path.join(args.path, args.dataset)
-    games_jsons = utils.load_jsonl(path, num_games=num_games, mmap=False, completed_only=True)
+    games_jsons = utils.load_jsonl(path, start_index=start_index, num_games=num_games, mmap=False, completed_only=True)
 
     # Convert to a pandas dataframe
     df = pd.DataFrame(games_jsons)
