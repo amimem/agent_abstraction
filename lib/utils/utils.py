@@ -350,6 +350,7 @@ def gen_triple_rows(game_tiple_presence):
             row['player_j'] = triple['player_j']
             row['min_phase_num'] = triple['min_phase_num']
             row['max_phase_num'] = triple['max_phase_num']
+            row['max_min_diff'] = triple['max_min_diff']
             row['triple_0'] = triple['triple'][0]
             row['triple_1'] = triple['triple'][1]
             row['triple_2'] = triple['triple'][2]
