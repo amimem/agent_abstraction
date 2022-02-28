@@ -31,9 +31,13 @@ if __name__ == "__main__":
         df = df.dropna()
         df = df.reset_index(drop=True, inplace=True)
         print("appended", j_path)
-        h_path = f"{args.path}/hdf5/game_tiple_presence_{jobid*100}_{(jobid+1)*100}_{jobid}.h5"
-        df.to_hdf(h_path, key='df', mode='w')
-        print("saved", h_path)
+
+        try:
+            h_path = f"{args.path}/hdf5/game_tiple_presence_{jobid*100}_{(jobid+1)*100}_{jobid}.h5"
+            df.to_hdf(h_path, key='df', mode='w')
+            print("saved", h_path)
+        except:
+            print("cannot create file", h_path)
 
     except:
         print("path does not exist", j_path)
