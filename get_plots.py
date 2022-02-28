@@ -23,7 +23,8 @@ if __name__ == "__main__":
     game_df_array = []
 
     for idx in range(start_index, end_index):
-        path = f"{args.path}/jsons/game_tiple_presence_{start_index*100}_{(start_index+1)*100}_{start_index}.json"
+        print(idx)
+        path = f"{args.path}/jsons/game_tiple_presence_{idx*100}_{(idx+1)*100}_{idx}.json"
         with open(f'{path}', 'r') as file:
             game_triple_presence = json.load(file)
 
