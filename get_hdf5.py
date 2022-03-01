@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
         df = pd.DataFrame.from_records(all_records)
         df = df.dropna()
-        df = df.reset_index(drop=True, inplace=True)
+        df = df.reset_index(drop=True)
         print("appended", j_path)
 
         try:
