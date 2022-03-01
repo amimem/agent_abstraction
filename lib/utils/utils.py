@@ -9,6 +9,7 @@ import itertools
 import os
 import json
 import matplotlib.pyplot as plt
+import time
 
 # Load the json data
 def load_jsonl(path: str, num_games: int = 30, mmap: bool = False, start_index = 0, completed_only: bool = False):
@@ -391,5 +392,5 @@ def plot(df, path):
         ax[wit,2].plot([np.mean(data)]*2,ax[wit,2].get_ylim(),'k--')
 
     fig.tight_layout()
-    save_path = f"{path}/'same_diff_ver_windowsize.pdf"
+    save_path = f"{path}/same_diff_ver_windowsize_{time.time()}.pdf"
     fig.savefig(save_path,format='pdf',dpi=300,bbox_inches='tight')
