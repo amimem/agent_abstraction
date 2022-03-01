@@ -16,7 +16,7 @@ if __name__ == "__main__":
     parser.add_argument('--path', metavar='P', type=str, help='path')
     args = parser.parse_args()
 
-    jobid = 0
+    jobid = int(os.getenv('SLURM_ARRAY_TASK_ID'))
 
     j_path = f"{args.path}/jsons/game_tiple_presence_{jobid*100}_{(jobid+1)*100}_{jobid}.json"
     try:
