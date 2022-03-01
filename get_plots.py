@@ -20,29 +20,21 @@ if __name__ == "__main__":
     start_index = 0
     end_index = 100
 
-    game_df_array = []
+    h5_array = []
 
     for idx in range(start_index, end_index):
-        print(idx)
-        path = f"{args.path}/jsons/game_tiple_presence_{idx*100}_{(idx+1)*100}_{idx}.json"
+        path = f"{args.path}/hdf5/game_tiple_presence_{idx*100}_{(idx+1)*100}_{idx}.h5"
+
         try:
-            with open(f'{path}', 'r') as file:
-                game_triple_presence = json.load(file)
-
-            all_records = []
-            for row in utils.gen_triple_rows(game_triple_presence):
-                all_records.append(row.copy())
-
-            df = pd.DataFrame.from_records(all_records)
-            df = df.dropna()
-
-            game_df_array.append(df)
+            # with open(f'{path}', 'r') as file:
+            #     game_triple_presence = json.load(file)
+            h5_array.append(pd.read_hdf(path, key='df'))
             print("appended", path)
 
-        except:
-            print("path does not exist", path)
+        except Exception as e:
+            print("path does not exist", path, e)
 
-    cdf = pd.concat(game_df_array)
-    del game_df_array
+    cdf = pd.concat(h5_array)
+    del h5_array
 
     utils.plot(cdf, args.path)
