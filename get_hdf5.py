@@ -30,7 +30,7 @@ if __name__ == "__main__":
         df = pd.DataFrame.from_records(all_records)
         # df = df.dropna()
         # df = df.reset_index(drop=True)
-        # df = df[["game_id", "max_min_diff", "factor_same", "factor_diff"]]
+        df = df[["game_id", "max_min_diff", "factor_same", "factor_diff"]]
         print("appended", j_path)
 
         try:
