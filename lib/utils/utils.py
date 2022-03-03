@@ -342,6 +342,8 @@ def get_triples_presence(game_df, triples):
         triple['max_min_diff'] = float(max_min_diff)
     return empty_eligible_phaes
 
+def get_consecutive_elements(arr, k):
+    return list(map(list, zip(*(arr[i:] for i in range(k)))))
 
 def gen_triple_rows(game_tiple_presence):
     row = {}
@@ -394,3 +396,45 @@ def plot(df, path):
     fig.tight_layout()
     save_path = f"{path}/same_diff_ver_windowsize_{time.time()}.pdf"
     fig.savefig(save_path,format='pdf',dpi=300,bbox_inches='tight')
+
+def gen_triple_window_rows(game_tiple_presence):
+    row = {}
+    for game in game_tiple_presence:
+        total_triples = len(game_tiple_presence[game])
+        print(game, total_triples)
+        for idx, triple in enumerate(game_tiple_presence[game]):
+            if idx % 500 == 0:
+                print(idx, total_triples, idx/total_triples)
+            if triple['max_min_diff'] > 0:
+                tiple_array = np.array(triple['triple'])
+                table = triple['table']
+                df = pd.DataFrame.from_dict(table, orient='index')
+                df = df.drop('unit_counts', axis=1)
+                df.index = df.index.astype(int)
+                df.columns = df.columns.astype(float)
+                column_list = df.columns.to_list()
+                same_indice = tiple_array[[0,1]]
+                diff_indice = tiple_array[[0,2]]
+                
+                consec_array = []
+                for i in range(1, len(column_list)):
+                    l = get_consecutive_elements(column_list, i+1)
+                    consec_array.extend(l)
+
+                for e in consec_array:
+                    tmp_df = df.loc[:, e]
+                    joint_i = len(tmp_df.loc[same_indice].T.drop_duplicates())
+                    joint_j = len(tmp_df.loc[diff_indice].T.drop_duplicates())
+                    counts_df = tmp_df.nunique(axis=1)
+                    prod_i = counts_df[same_indice].values.prod()
+                    prod_j = counts_df[diff_indice].values.prod()
+                    factor_same = prod_i/ float(joint_i)
+                    factor_diff = prod_j/ float(joint_j)
+
+                    row['min_phase_num'] = min(e)
+                    row['max_phase_num'] = max(e)
+                    row['max_min_diff'] = max(e) - min(e)
+
+                    row['factor_same'] = factor_same
+                    row['factor_diff'] = factor_diff
+                    yield row
