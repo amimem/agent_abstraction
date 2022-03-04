@@ -9,12 +9,15 @@ import json
 import argparse
 from lib.utils import utils
 
-
+def dummy_func(x):
+    counts_df = x.diff_sign.value_counts()
+    return counts_df[1]/(counts_df[1] + counts_df[-1])
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--path', metavar='P', type=str, help='path')
+    parser.add_argument('--plot', metavar='PL', type=str, help='plot')
     args = parser.parse_args()
 
     start_index = 0
@@ -37,4 +40,12 @@ if __name__ == "__main__":
     cdf = pd.concat(h5_array)
     del h5_array
 
-    utils.plot(cdf, args.path)
+
+
+    if args.plot == "hist":
+        utils.plot(cdf, args.path)
+    elif args.plot == "accuracy":
+        cdf['diff'] = cdf['factor_same'] - cdf['factor_diff']
+        cdf['diff_sign'] = np.sign(cdf['diff'])
+        gp_df = cdf.groupby(['min_phase_num', 'max_min_diff']).apply(dummy_func)
+        utils.accuracy_plot(gp_df, args.path)
