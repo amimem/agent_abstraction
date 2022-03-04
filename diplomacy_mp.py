@@ -58,7 +58,7 @@ def main():
 
     games_jsons = []
     with ThreadPoolExecutor(max_workers=th_max_cpus) as executor:
-        results = executor.map(utils.load_jsonl, [path]*num_games, [num_games]*num_games, [False]*num_games, start_index, [True]*num_games)
+        results = executor.map(utils.load_jsonl, [path]*num_games, [step_size]*num_games, [False]*num_games, start_index, [True]*num_games)
 
     for result in results:
         games_jsons.extend(result)
