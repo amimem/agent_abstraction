@@ -53,6 +53,7 @@ def main():
     num_games = len(start_index)
     pr_max_cpus = multiprocessing.cpu_count()
     th_max_cpus =  min(32, os.cpu_count() + 4)
+    print("max_thread and max_process: ", pr_max_cpus, th_max_cpus, flush=True)
     # games_jsons = utils.load_jsonl(path, start_index=start_index, num_games=num_games, mmap=False, completed_only=True)
 
     games_jsons = []
