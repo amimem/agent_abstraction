@@ -10,6 +10,7 @@ import os
 import json
 import matplotlib.pyplot as plt
 import time
+import seaborn as sns
 
 # Load the json data
 def load_jsonl(path: str, num_games: int = 30, mmap: bool = False, start_index = 0, completed_only: bool = False):
@@ -540,3 +541,18 @@ def gen_triple_window_rows(game_tiple_presence):
                     row['factor_same'] = factor_same
                     row['factor_diff'] = factor_diff
                     yield row
+
+def accuracy_plot(df, path):
+    # make heatmap of the dataframe
+    fig = plt.figure(figsize=(3,3))
+    ax = fig.add_subplot(111)
+    sns.heatmap(df.unstack().T, xticklabels= 6, yticklabels= 6, ax=ax)
+    ax.set_xlabel("Year")
+    ax.set_ylabel("Window Size, w")
+    ax.set_title("Accuracy")
+    x_labels = [str(x.get_text()[:-2]) for x in ax.get_xticklabels()]
+    ax.set_xticklabels(x_labels)
+    ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
+    ax.invert_yaxis()
+    fig.tight_layout()
+    fig.savefig(f'{path}/heatmap.pdf_{time.time()}', dpi=300, bbox_inches='tight')
