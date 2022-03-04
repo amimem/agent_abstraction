@@ -17,8 +17,11 @@ def get_game_tuple_presence(game_df, game_id):
     game_tuple_presence = {}
     # lens = []
     if game_df.unique_unit_id.nunique() == game_df.unique_unit_id.max():
-        tuples = utils.get_n_tuples(game_df)
-        random_tuples = utils.get_random_samples(tuples, 5)
+        try:
+            tuples = utils.get_n_tuples(game_df)
+            random_tuples = utils.get_random_samples(tuples, 5)
+        except Exception as msg:
+            print(msg, flush=True)
         # tuple_lens = [len(tuples[n]) for n in tuples]
         # lens.append(tuple_lens)
         try:
