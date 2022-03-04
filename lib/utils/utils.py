@@ -300,6 +300,38 @@ def get_triples(game_df):
         triples.extend(triple)
     return triples
 
+def get_n_tuples(game_df, n=5):
+    players = game_df["coordinator"].unique()
+    assert len(players) == 7, players
+    player_units = {}
+    for player in players:
+        player_units[player] = game_df.loc[game_df["coordinator"] == player]["unique_unit_id"].unique()
+    
+    n_tuples = {}
+    for player_i in players:
+        n_tuples[player_i] = {}
+        for k in range(n):
+            n_tuples[player_i][k] = []
+            values_i = player_units[player_i]
+            if len(values_i) >= k+1:
+                values_j = np.concatenate([value for key, value in player_units.items() if key != player_i])
+                if len(values_j) >= n-k-1:
+                    p_units = list(itertools.combinations(values_i, k+1))
+                    o_unit = list(itertools.combinations(values_j, n-k-1))
+                    # get all 3-tuples unique combinations
+                    p_o_product = list(itertools.product(p_units, o_unit))
+                    # p_o_product = [element for tupl in p_o_product for element in tupl]
+                    # p_o_product = list(sum(p_o_product, ()))
+                    n_tuples[player_i][k].extend(p_o_product)
+    return n_tuples
+
+def get_random_samples(n_tuples, n=5):
+    samples = []
+    for k in range(n):
+
+        samples.extend(random.sample(n_tuples[k], 1))
+    return samples
+
 def get_triples_presence(game_df, triples):
     empty_eligible_phaes = 0
     for triple in triples:
@@ -342,6 +374,63 @@ def get_triples_presence(game_df, triples):
         triple['max_min_diff'] = float(max_min_diff)
     return empty_eligible_phaes
 
+def get_tuples_presence(game_df, n_tuples, n=5):
+    empty_eligible_phaes = 0
+    # indice = np.arange(n)
+    counter = 0
+    eligible_counter = 0
+    for k in n_tuples:
+        # same_indice = indice[:k]
+        # diff_indice = indice[k:]
+        for tupl in n_tuples[k]:
+            condition_i = (game_df["unique_unit_id"].apply(lambda x: x in tupl['tuple'][0]))
+            condition_j = (game_df["unique_unit_id"].apply(lambda x: x in tupl['tuple'][1]))
+            presence = game_df.loc[condition_i | condition_j]
+            phases = presence["phase_name"].value_counts()
+            mask = (phases == n).to_dict()
+            eligible_phases = presence.loc[presence["phase_name"].apply(lambda x: mask[x])]
+            unqiue_eligible_phases = eligible_phases.phase_num.unique()
+            counter += 1
+
+
+            if len(unqiue_eligible_phases):
+                max_phase_num = eligible_phases.phase_num.max()
+                min_phase_num = eligible_phases.phase_num.min()
+                max_min_diff = max_phase_num - min_phase_num
+                assert (max_min_diff/0.5 + 1) == len(unqiue_eligible_phases) , ("values are not contiguous", len(unqiue_eligible_phases), unqiue_eligible_phases, max_min_diff, game_df["game_id"].unique(), tupl)
+                eligible_counter += 1
+                # if max_min_diff:
+                    # pivot_df = eligible_phases.groupby(['unique_unit_id','phase_num'])['action'].aggregate('first').unstack()
+                    # tiple_array = np.array(tupl['tuple'])
+                    # same_element = tiple_array[same_indice]
+                    # diff_element = tiple_array[diff_indice]
+
+                    # joint_i = len(pivot_df.loc[same_element].T.drop_duplicates())
+                    # joint_j = len(pivot_df.loc[diff_element].T.drop_duplicates())
+
+                    # pivot_df['unit_counts'] = pivot_df.nunique(axis=1)
+
+                    # prod_i = pivot_df.loc[same_element, 'unit_counts'].values.prod()
+                    # prod_j = pivot_df.loc[diff_element, 'unit_counts'].values.prod()
+
+                    # tupl['factor_same'] = prod_i/ float(joint_i)
+                    # tupl['factor_diff'] = prod_j/ float(joint_j)
+                    # tupl['table'] = pivot_df.to_dict(orient='index')
+
+            else:
+                empty_eligible_phaes += 1
+                
+            # tupl['max_phase_num'] = float(max_phase_num)
+            # tupl['min_phase_num'] = float(min_phase_num)
+            # tupl['max_min_diff'] = float(max_min_diff)
+
+            if counter % 1000 == 0:
+                print(counter, eligible_counter, empty_eligible_phaes)
+
+    return empty_eligible_phaes
+
+
+
 def get_consecutive_elements(arr, k):
     return list(map(list, zip(*(arr[i:] for i in range(k)))))
 
@@ -361,6 +450,23 @@ def gen_triple_rows(game_tiple_presence):
             row['factor_same'] = triple['factor_same'] if 'factor_same' in triple else nan
             row['factor_diff'] = triple['factor_diff'] if 'factor_diff' in triple else nan
             yield row
+
+def gen_tuple_rows(game_tiple_presence):
+    row = {}
+    for game in game_tiple_presence:
+        row['game_id'] = game
+        for k in game_tiple_presence[game]:
+            for tuple in game_tiple_presence[game][k]:
+                row['player_i'] = tuple['player_i']
+                row['player_j'] = tuple['player_j']
+                row['min_phase_num'] = tuple['min_phase_num']
+                row['max_phase_num'] = tuple['max_phase_num']
+                row['max_min_diff'] = tuple['max_min_diff']
+                row['k'] = k+1
+                row['tuple_i'] = tuple['tuple'][0]
+                row['tuple_j'] = tuple['tuple'][1]
+                yield row
+
 
 def plot(df, path):
 
