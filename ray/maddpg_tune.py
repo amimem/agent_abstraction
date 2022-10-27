@@ -5,7 +5,6 @@ from ray.rllib.env.wrappers.pettingzoo_env import PettingZooEnv
 from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
 from pettingzoo.mpe import simple_tag_v2
 from ray.tune.logger import pretty_print
-from pettingzoo.utils import to_parallel
 from ray.rllib.agents.ppo import PPOTrainer, PPOTFPolicy, PPOTorchPolicy
 from argparse import ArgumentParser
 import os
