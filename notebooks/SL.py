@@ -15,8 +15,9 @@ n_hidden = 256
 n_out = 5
 batch_size = 100
 learning_rate = 0.01
-agent_n_epochs = 500
-adversary_n_epochs = 500
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+print(f"Using {device} device")
 
 # %% [markdown]
 # ### Data
@@ -24,18 +25,29 @@ adversary_n_epochs = 500
 # %%
 # find all pickle files in the current directory using glob
 
-path = "/Users/ens/Library/Mobile Documents/com~apple~CloudDocs/Rupali/new"
-all_files = glob.glob(path + "/*.pkl")
+path = "/home/mila/m/memariaa/scratch"
+# all_files = glob.glob(path + "/*.pkl")
 
-# create a list of dataframes
-li = []
+# # create a list of dataframes
+# li = []
 
-for filename in all_files:
-    df = pd.read_pickle(filename)
-    li.append(df)
+# for filename in all_files:
+#     df = pd.read_pickle(filename)
+#     li.append(df)
 
 # concatenate the list of dataframes into one dataframe
-data = pd.concat(li, axis=0, ignore_index=True)
+# data = pd.concat(li, axis=0, ignore_index=True)
+data = pd.read_hdf("/home/mila/m/memariaa/scratch/new/data.h5", key="df")
+# try:
+#     # Attempt to load the pickle file using the latest version of pandas.
+#     data = pd.read_pickle('/home/mila/m/memariaa/scratch/new/data.pkl')
+# except AttributeError:
+#     # If an AttributeError is raised, it is likely because the pickle file was
+#     # created using an older version of pandas. In this case, we can try
+#     # loading the file using an older version of the pickle protocol.
+#     with open('/home/mila/m/memariaa/scratch/new/data.pkl', 'rb') as f:
+#         data = pickle.load(f, fix_imports=True, encoding="bytes")
+#     data = pd.DataFrame(data)
 
 # %%
 # save observation column of arrays to a numpy array
@@ -153,9 +165,6 @@ class PolicyNetwork(nn.Module):
 
 
 def policy_model(num_networks = 1):
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Using {device} device")
     
     model = [PolicyNetwork(i).to(device) for i in range(num_networks)]
     # print(model)
@@ -181,7 +190,9 @@ def train_loop(dataloaders, models, loss_fn, optimizers):
         for batch, (obs, act, prob, idx, logits, probs) in enumerate(dataloader):
 
             # Compute prediction and loss
+            obs = obs.to(device)
             pred = model(obs)
+            act = act.to(device)
             loss = loss_fn(pred, act)
 
             # Backpropagation
@@ -218,7 +229,9 @@ def test_loop(dataloaders, models, loss_fn):
             epoch_accuracies = []
             for batch, (obs, act, prob, idx, logits, probs) in enumerate(dataloader):
 
+                obs = obs.to(device)
                 pred = model(obs)
+                act = act.to(device)
                 test_loss += loss_fn(pred, act).item()
                 correct += (pred.argmax(1) == act).type(torch.float).sum().item()
 
@@ -234,7 +247,7 @@ def test_loop(dataloaders, models, loss_fn):
 
 if __name__ == "__main__":
 
-    epochs = 500
+    epochs = 1000
 
     splits = [[0.0, 0.9, 1], [0.3, 0.9 ,1] ,[0.6, 0.9, 1]]
 
@@ -263,9 +276,9 @@ if __name__ == "__main__":
                 test_accuracies.append(test_acc)
 
                 # save model
-                if (t+1) % 2 == 0:
+                if (t+1) % 200 == 0:
                     torch.save(policies[0].state_dict(), f"model_{t+1}_{split}_{bin}.pth")
-                    print("Saved PyTorch Model State to model.pth")
+                    print("Saved PyTorch Model State to model.pth", flush=True)
 
                     # save train and test losses and accuracies as numpy arrays
                     np.save(f'{path}/train_losses_{t+1}_{split}_{bin}.npy', train_losses)
@@ -273,9 +286,4 @@ if __name__ == "__main__":
                     np.save(f'{path}/test_losses_{t+1}_{split}_{bin}.npy', test_losses)
                     np.save(f'{path}/test_accuracies_{t+1}_{split}_{bin}.npy', test_accuracies)
 
-
     print("Done!")
-
-
-
-
