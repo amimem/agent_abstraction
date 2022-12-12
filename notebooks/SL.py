@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy
 import glob
+import argparse
 # from torchmetrics import Accuracy
 
 import warnings
@@ -19,8 +20,17 @@ learning_rate = 0.01
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device")
 
-# %% [markdown]
-# ### Data
+# get arguments using argparse, such as path, batch size, learning rate, split start and a binary flag for whether to use the separated data or not
+
+parser = argparse.ArgumentParser(description='Train a neural network to predict actions from observations')
+parser.add_argument('--path', type=str, default='/home/mila/m/memariaa/scratch/new/data.h5', help='path to the data')
+parser.add_argument('--batch_size', type=int, default=100, help='batch size')
+parser.add_argument('--learning_rate', type=float, default=0.01, help='learning rate')
+parser.add_argument('--split_start', type=float, default=0.0, help='start of the validation split')
+parser.add_argument('--separated', type=bool, default=False, help='whether to use the separated data or not')
+args = parser.parse_args()
+
+
 
 # %%
 # find all pickle files in the current directory using glob
@@ -60,7 +70,7 @@ act = np.array(data['actions'].to_list())
 ids = np.array(data['agent_index'].to_list())
 
 # %%
-def get_dataloaders(data, separated = False, ratios=[0.0, 0.8, 0.9]):
+def get_dataloaders(data, separated = args.separated, ratios=[args.split_start, 0.8, 0.9]):
 
     # Shuffling by episode
     groups = [data for _, data in data.groupby('eps_id')]
@@ -249,41 +259,41 @@ if __name__ == "__main__":
 
     epochs = 1000
 
-    splits = [[0.0, 0.9, 1], [0.3, 0.9 ,1] ,[0.6, 0.9, 1]]
+    spilt_start = args.split_start
 
-    for bin in [True, False]:
-        policies, loss_fn, optimizers = policy_model(num_networks= 4 if bin else 1)
-        for split in splits:
-            print(split)
-            train_loader, test_loader, val_loader = get_dataloaders(data=data, separated=bin, ratios=split)
+    is_separated = args.separated
 
-            train_losses = []
-            train_accuracies = []
+    policies, loss_fn, optimizers = policy_model(num_networks= 4 if args.separated else 1)
 
-            test_losses = []
-            test_accuracies = []
+    train_loader, test_loader, val_loader = get_dataloaders(data=data)
 
-            for t in range(epochs):
+    train_losses = []
+    train_accuracies = []
 
-                print(f"Epoch {t+1}\n-------------------------------")
-                train_loss, train_acc =  train_loop(train_loader, policies, loss_fn, optimizers)
-                test_loss, test_acc = test_loop(test_loader, policies, loss_fn)
+    test_losses = []
+    test_accuracies = []
 
-                train_losses.append(train_loss)
-                train_accuracies.append(train_acc)
+    for t in range(epochs):
 
-                test_losses.append(test_loss)
-                test_accuracies.append(test_acc)
+        print(f"Epoch {t+1}\n-------------------------------")
+        train_loss, train_acc =  train_loop(train_loader, policies, loss_fn, optimizers)
+        test_loss, test_acc = test_loop(test_loader, policies, loss_fn)
 
-                # save model
-                if (t+1) % 200 == 0:
-                    torch.save(policies[0].state_dict(), f"model_{t+1}_{split}_{bin}.pth")
-                    print("Saved PyTorch Model State to model.pth", flush=True)
+        train_losses.append(train_loss)
+        train_accuracies.append(train_acc)
 
-                    # save train and test losses and accuracies as numpy arrays
-                    np.save(f'{path}/train_losses_{t+1}_{split}_{bin}.npy', train_losses)
-                    np.save(f'{path}/train_accuracies_{t+1}_{split}_{bin}.npy', train_accuracies)
-                    np.save(f'{path}/test_losses_{t+1}_{split}_{bin}.npy', test_losses)
-                    np.save(f'{path}/test_accuracies_{t+1}_{split}_{bin}.npy', test_accuracies)
+        test_losses.append(test_loss)
+        test_accuracies.append(test_acc)
+
+        # save model
+        if (t+1) % 200 == 0:
+            torch.save(policies[0].state_dict(), f"model_{t+1}_{split}_{bin}.pth")
+            print("Saved PyTorch Model State to model.pth", flush=True)
+
+            # save train and test losses and accuracies as numpy arrays
+            np.save(f'{path}/train_losses_{t+1}_{spilt_start}_{is_separated}.npy', train_losses)
+            np.save(f'{path}/train_accuracies_{t+1}_{spilt_start}_{is_separated}.npy', train_accuracies)
+            np.save(f'{path}/test_losses_{t+1}_{spilt_start}_{is_separated}.npy', test_losses)
+            np.save(f'{path}/test_accuracies_{t+1}_{spilt_start}_{is_separated}.npy', test_accuracies)
 
     print("Done!")
