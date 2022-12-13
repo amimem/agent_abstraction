@@ -23,7 +23,7 @@ print(f"Using {device} device", flush=True)
 # get arguments using argparse, such as path, batch size, learning rate, split start and a binary flag for whether to use the separated data or not
 
 parser = argparse.ArgumentParser(description='Train a neural network to predict actions from observations')
-parser.add_argument('--path', type=str, default='/home/mila/m/memariaa/scratch/new/data.h5', help='path to the data')
+parser.add_argument('--path', type=str, default='/home/mila/m/memariaa/scratch', help='path to the data')
 parser.add_argument('--batch_size', type=int, default=100, help='batch size')
 parser.add_argument('--learning_rate', type=float, default=0.01, help='learning rate')
 parser.add_argument('--split_start', type=float, default=0.0, help='start of the validation split')
@@ -37,7 +37,7 @@ is_separated: bool = args.separated
 # %%
 # find all pickle files in the current directory using glob
 
-path = "/home/mila/m/memariaa/scratch"
+path = args.path
 # all_files = glob.glob(path + "/*.pkl")
 
 # # create a list of dataframes
@@ -49,7 +49,7 @@ path = "/home/mila/m/memariaa/scratch"
 
 # concatenate the list of dataframes into one dataframe
 # data = pd.concat(li, axis=0, ignore_index=True)
-data = pd.read_hdf("/home/mila/m/memariaa/scratch/new/data.h5", key="df")
+data = pd.read_hdf(f"{path}/new/data.h5", key="df")
 # try:
 #     # Attempt to load the pickle file using the latest version of pandas.
 #     data = pd.read_pickle('/home/mila/m/memariaa/scratch/new/data.pkl')
@@ -191,13 +191,13 @@ def train_loop(dataloaders, models, loss_fn, optimizers):
     size = len(dataloaders[0].dataset)
     num_batches = len(dataloaders[0])
 
+    epoch_losses = []
+    epoch_accuracies = []
+
     for model, optimizer, dataloader in zip(models, optimizers, dataloaders):
 
         running_train_loss = 0.0 
         running_accuracy = 0.0 
-
-        epoch_losses = []
-        epoch_accuracies = []
 
         for batch, (obs, act, prob, idx, logits, probs) in enumerate(dataloader):
 
@@ -234,11 +234,12 @@ def test_loop(dataloaders, models, loss_fn):
     size = len(dataloaders[0].dataset)
     num_batches = len(dataloaders[0])
 
+    epoch_losses = []
+    epoch_accuracies = []
+
     with torch.no_grad():
         for model, dataloader in zip(models, dataloaders):
             test_loss, correct = 0, 0
-            epoch_losses = []
-            epoch_accuracies = []
             for batch, (obs, act, prob, idx, logits, probs) in enumerate(dataloader):
 
                 obs = obs.to(device)
@@ -259,7 +260,7 @@ def test_loop(dataloaders, models, loss_fn):
 
 if __name__ == "__main__":
 
-    policies, loss_fn, optimizers = policy_model(num_networks= 4 if args.separated else 1)
+    policies, loss_fn, optimizers = policy_model(num_networks= 4 if is_separated else 1)
 
     train_loader, test_loader, val_loader = get_dataloaders(data=data)
 
@@ -283,7 +284,7 @@ if __name__ == "__main__":
 
         # save model
         if (t+1) % 200 == 0:
-            torch.save(policies[0].state_dict(), f"{path}/model_{t+1}_{spilt_start}_{is_separated}.pth")
+            for i in range(len(policies)): torch.save(policies[i].state_dict(), f"{path}/model_p{i}_{t+1}_{spilt_start}_{is_separated}.pth") 
             print("Saved PyTorch Model State to model.pth", flush=True)
 
             # save train and test losses and accuracies as numpy arrays
