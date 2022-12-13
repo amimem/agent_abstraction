@@ -18,7 +18,7 @@ batch_size = 100
 learning_rate = 0.01
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-print(f"Using {device} device")
+print(f"Using {device} device", flush=True)
 
 # get arguments using argparse, such as path, batch size, learning rate, split start and a binary flag for whether to use the separated data or not
 
@@ -30,7 +30,9 @@ parser.add_argument('--split_start', type=float, default=0.0, help='start of the
 parser.add_argument('--separated', type=bool, default=False, help='whether to use the separated data or not')
 args = parser.parse_args()
 
-
+epochs = 400
+spilt_start = args.split_start
+is_separated: bool = args.separated
 
 # %%
 # find all pickle files in the current directory using glob
@@ -70,7 +72,7 @@ act = np.array(data['actions'].to_list())
 ids = np.array(data['agent_index'].to_list())
 
 # %%
-def get_dataloaders(data, separated = args.separated, ratios=[args.split_start, 0.8, 0.9]):
+def get_dataloaders(data, separated = is_separated, ratios=[spilt_start, 0.8, 0.9]):
 
     # Shuffling by episode
     groups = [data for _, data in data.groupby('eps_id')]
@@ -91,9 +93,9 @@ def get_dataloaders(data, separated = args.separated, ratios=[args.split_start, 
     _, train, test, val = np.split(data, [int(ratios[0]*length_of_epi*num_agents*num_episodes),int(ratios[1]*length_of_epi*num_agents*num_episodes), int(ratios[2]*length_of_epi*num_agents*num_episodes)])
 
 
-    print("train shape: ", train.shape)
-    print("test shape: ", test.shape)
-    print("val shape: ", val.shape)
+    print("train shape: ", train.shape, flush=True)
+    print("test shape: ", test.shape, flush=True)
+    print("val shape: ", val.shape, flush=True)
 
 
     # create test, train and validation dataloaders
@@ -109,7 +111,7 @@ def get_dataloaders(data, separated = args.separated, ratios=[args.split_start, 
     # 'separated' decides size of train, test and validation sets. 
     # If False, obs and actions are concatenated for separate agents. 
     # If False, obs and actions are separate for separate agents.
-    if separated == True:
+    if separated is True:
         for agent_ind in np.arange(num_agents):
 
             train_agent = train[train['agent_index'] == agent_ind]
@@ -217,14 +219,14 @@ def train_loop(dataloaders, models, loss_fn, optimizers):
 
             if batch % 1000 == 0:
                 loss, current = loss.item(), batch * len(obs)
-                print(f"model: {model.index} loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+                print(f"model: {model.index} loss: {loss:>7f}  [{current:>5d}/{size:>5d}]",flush=True)
         
         epoch_loss = running_train_loss / num_batches
         epoch_losses.append(epoch_loss)
         epoch_accuracy = running_accuracy / size
         epoch_accuracies.append(epoch_accuracy)
 
-        print(f"model: {model.index} Train loss: {epoch_loss:>8f} Train accuracy: {epoch_accuracy:>8f}")
+        print(f"model: {model.index} Train loss: {epoch_loss:>8f} Train accuracy: {epoch_accuracy:>8f}",flush=True)
 
     return epoch_losses, epoch_accuracies
 
@@ -251,17 +253,11 @@ def test_loop(dataloaders, models, loss_fn):
             epoch_losses.append(test_loss)
             epoch_accuracies.append(correct)
 
-            print(f"Mode: {model.index} \n Test Error: \n Accuracy:{(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
+            print(f"Mode: {model.index} \n Test Error: \n Accuracy:{(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n",flush=True)
             
     return epoch_losses, epoch_accuracies
 
 if __name__ == "__main__":
-
-    epochs = 1000
-
-    spilt_start = args.split_start
-
-    is_separated = args.separated
 
     policies, loss_fn, optimizers = policy_model(num_networks= 4 if args.separated else 1)
 
@@ -275,7 +271,7 @@ if __name__ == "__main__":
 
     for t in range(epochs):
 
-        print(f"Epoch {t+1}\n-------------------------------")
+        print(f"Epoch {t+1}\n-------------------------------", flush=True)
         train_loss, train_acc =  train_loop(train_loader, policies, loss_fn, optimizers)
         test_loss, test_acc = test_loop(test_loader, policies, loss_fn)
 
@@ -287,7 +283,7 @@ if __name__ == "__main__":
 
         # save model
         if (t+1) % 200 == 0:
-            torch.save(policies[0].state_dict(), f"model_{t+1}_{split}_{bin}.pth")
+            torch.save(policies[0].state_dict(), f"{path}/model_{t+1}_{spilt_start}_{is_separated}.pth")
             print("Saved PyTorch Model State to model.pth", flush=True)
 
             # save train and test losses and accuracies as numpy arrays
