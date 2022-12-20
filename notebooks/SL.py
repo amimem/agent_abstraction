@@ -14,13 +14,13 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 n_input = 20
 n_hidden = 256
 n_out = 5
-batch_size = 100
+batch_size = 25
 learning_rate = 0.01
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device", flush=True)
 
-# get arguments using argparse, such as path, batch size, learning rate, split start and a binary flag for whether to use the separated data or not
+# get arguments using argparse, such as path, batch size, learning rate, split start and a binary flag for whether to use the separated data or not, the seed to use
 
 parser = argparse.ArgumentParser(description='Train a neural network to predict actions from observations')
 parser.add_argument('--path', type=str, default='/home/mila/m/memariaa/scratch', help='path to the data')
@@ -28,9 +28,14 @@ parser.add_argument('--batch_size', type=int, default=100, help='batch size')
 parser.add_argument('--learning_rate', type=float, default=0.01, help='learning rate')
 parser.add_argument('--split_start', type=float, default=0.0, help='start of the validation split')
 parser.add_argument('--separated', type=bool, default=False, help='whether to use the separated data or not')
+parser.add_argument('--seed', type=int, default=0, help='seed')
 args = parser.parse_args()
 
-epochs = 400
+seed: int = args.seed
+torch.manual_seed(seed)
+np.random.seed(0)
+
+epochs = 1000
 spilt_start = args.split_start
 is_separated: bool = args.separated
 
@@ -76,7 +81,6 @@ def get_dataloaders(data, separated = is_separated, ratios=[spilt_start, 0.8, 0.
 
     # Shuffling by episode
     groups = [data for _, data in data.groupby('eps_id')]
-    np.random.seed(0)
     np.random.shuffle(groups)
     data = pd.concat(groups).reset_index(drop=False)
     data = data.sort_values(by=['eps_id','t','agent_index'],ignore_index=False)
@@ -127,15 +131,15 @@ def get_dataloaders(data, separated = is_separated, ratios=[spilt_start, 0.8, 0.
 
 
             train_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_train), torch.from_numpy(act_train),torch.from_numpy(act_prob_train), torch.from_numpy(ids_train),torch.from_numpy(logits_train),torch.from_numpy(probs_train))
-            train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
+            train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
             all_train_dataloaders.append(train_dataloader)
 
             test_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_test), torch.from_numpy(act_test), torch.from_numpy(act_prob_test), torch.from_numpy(ids_test),torch.from_numpy(logits_test),torch.from_numpy(probs_test))
-            test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+            test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
             all_test_dataloaders.append(test_dataloader)
 
             val_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_val), torch.from_numpy(act_val), torch.from_numpy(act_prob_val), torch.from_numpy(ids_val),torch.from_numpy(logits_val),torch.from_numpy(probs_val))
-            val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+            val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
             all_val_dataloaders.append(val_dataloader)
     else:
         obs_train, obs_test, obs_val = np.array(train['obs'].to_list()), np.array(test['obs'].to_list()), np.array(val['obs'].to_list())
@@ -147,13 +151,13 @@ def get_dataloaders(data, separated = is_separated, ratios=[spilt_start, 0.8, 0.
 
 
         train_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_train), torch.from_numpy(act_train), torch.from_numpy(act_prob_train) ,torch.from_numpy(ids_train),torch.from_numpy(logits_train),torch.from_numpy(probs_train))
-        all_train_dataloaders = [torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=False)]
+        all_train_dataloaders = [torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)]
 
         test_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_test), torch.from_numpy(act_test), torch.from_numpy(act_prob_test) ,torch.from_numpy(ids_test),torch.from_numpy(logits_test),torch.from_numpy(probs_test))
-        all_test_dataloaders = [torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)]
+        all_test_dataloaders = [torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)]
 
         val_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_val), torch.from_numpy(act_val), torch.from_numpy(act_prob_val) ,torch.from_numpy(ids_val),torch.from_numpy(logits_val),torch.from_numpy(probs_val))
-        all_val_dataloaders = [torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False)]
+        all_val_dataloaders = [torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True)]
 
 
     return all_train_dataloaders, all_test_dataloaders, all_val_dataloaders
@@ -284,13 +288,13 @@ if __name__ == "__main__":
 
         # save model
         if (t+1) % 200 == 0:
-            for i in range(len(policies)): torch.save(policies[i].state_dict(), f"{path}/model_p{i}_{t+1}_{spilt_start}_{is_separated}.pth") 
+            for i in range(len(policies)): torch.save(policies[i].state_dict(), f"{path}/model_p{i}_{t+1}_{spilt_start}_{is_separated}_{seed}.pth") 
             print("Saved PyTorch Model State to model.pth", flush=True)
 
             # save train and test losses and accuracies as numpy arrays
-            np.save(f'{path}/train_losses_{t+1}_{spilt_start}_{is_separated}.npy', train_losses)
-            np.save(f'{path}/train_accuracies_{t+1}_{spilt_start}_{is_separated}.npy', train_accuracies)
-            np.save(f'{path}/test_losses_{t+1}_{spilt_start}_{is_separated}.npy', test_losses)
-            np.save(f'{path}/test_accuracies_{t+1}_{spilt_start}_{is_separated}.npy', test_accuracies)
+            np.save(f'{path}/train_losses_{t+1}_{spilt_start}_{is_separated}_{seed}.npy', train_losses)
+            np.save(f'{path}/train_accuracies_{t+1}_{spilt_start}_{is_separated}_{seed}.npy', train_accuracies)
+            np.save(f'{path}/test_losses_{t+1}_{spilt_start}_{is_separated}_{seed}.npy', test_losses)
+            np.save(f'{path}/test_accuracies_{t+1}_{spilt_start}_{is_separated}_{seed}.npy', test_accuracies)
 
     print("Done!")
