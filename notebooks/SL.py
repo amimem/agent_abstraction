@@ -24,7 +24,7 @@ print(f"Using {device} device", flush=True)
 
 parser = argparse.ArgumentParser(description='Train a neural network to predict actions from observations')
 parser.add_argument('--path', type=str, default='/home/mila/m/memariaa/scratch', help='path to the data')
-parser.add_argument('--batch_size', type=int, default=100, help='batch size')
+parser.add_argument('--batch_size', type=int, default=25, help='batch size')
 parser.add_argument('--learning_rate', type=float, default=0.01, help='learning rate')
 parser.add_argument('--split_start', type=float, default=0.0, help='start of the validation split')
 parser.add_argument('--separated', type=bool, default=False, help='whether to use the separated data or not')
@@ -33,7 +33,7 @@ args = parser.parse_args()
 
 seed: int = args.seed
 torch.manual_seed(seed)
-np.random.seed(0)
+np.random.seed(seed)
 
 epochs = 1000
 spilt_start = args.split_start
