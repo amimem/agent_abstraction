@@ -27,7 +27,7 @@ parser.add_argument('--path', type=str, default='/home/mila/m/memariaa/scratch',
 parser.add_argument('--batch_size', type=int, default=25, help='batch size')
 parser.add_argument('--learning_rate', type=float, default=0.01, help='learning rate')
 parser.add_argument('--split_start', type=float, default=0.0, help='start of the validation split')
-parser.add_argument('--separated', type=bool, default=False, help='whether to use the separated data or not')
+parser.add_argument('--num_models', type=int, default=0, help='whether to use the separated data or not')
 parser.add_argument('--seed', type=int, default=0, help='seed')
 args = parser.parse_args()
 
@@ -37,7 +37,7 @@ np.random.seed(seed)
 
 epochs = 1000
 spilt_start = args.split_start
-is_separated: bool = args.separated
+num_models: int = args.num_models
 
 # %%
 # find all pickle files in the current directory using glob
@@ -77,7 +77,7 @@ act = np.array(data['actions'].to_list())
 ids = np.array(data['agent_index'].to_list())
 
 # %%
-def get_dataloaders(data, separated = is_separated, ratios=[spilt_start, 0.8, 0.9]):
+def get_dataloaders(data, num_models = num_models, ratios=[spilt_start, 0.8, 0.9]):
 
     # Shuffling by episode
     groups = [data for _, data in data.groupby('eps_id')]
@@ -115,7 +115,7 @@ def get_dataloaders(data, separated = is_separated, ratios=[spilt_start, 0.8, 0.
     # 'separated' decides size of train, test and validation sets. 
     # If False, obs and actions are concatenated for separate agents. 
     # If False, obs and actions are separate for separate agents.
-    if separated is True:
+    if num_models is num_agents:
         for agent_ind in np.arange(num_agents):
 
             train_agent = train[train['agent_index'] == agent_ind]
@@ -141,7 +141,7 @@ def get_dataloaders(data, separated = is_separated, ratios=[spilt_start, 0.8, 0.
             val_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_val), torch.from_numpy(act_val), torch.from_numpy(act_prob_val), torch.from_numpy(ids_val),torch.from_numpy(logits_val),torch.from_numpy(probs_val))
             val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
             all_val_dataloaders.append(val_dataloader)
-    else:
+    elif num_models is 1:
         obs_train, obs_test, obs_val = np.array(train['obs'].to_list()), np.array(test['obs'].to_list()), np.array(val['obs'].to_list())
         act_train, act_test, act_val = np.array(train['actions'].to_list()), np.array(test['actions'].to_list()), np.array(val['actions'].to_list())
         act_prob_train, act_prob_test, act_prob_val = np.array(train['action_prob'].to_list()), np.array(test['action_prob'].to_list()), np.array(val['action_prob'].to_list())
@@ -159,6 +159,31 @@ def get_dataloaders(data, separated = is_separated, ratios=[spilt_start, 0.8, 0.
         val_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_val), torch.from_numpy(act_val), torch.from_numpy(act_prob_val) ,torch.from_numpy(ids_val),torch.from_numpy(logits_val),torch.from_numpy(probs_val))
         all_val_dataloaders = [torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True)]
 
+    elif num_models is 2:
+
+        teams_idx = [[0,1,2], [3]]
+
+        for idx in teams_idx:
+            # if agent idx is in idx, then it is in the team
+            train_team = train[train['agent_index'].isin(idx)]
+            test_team = test[test['agent_index'].isin(idx)]
+            val_team = val[val['agent_index'].isin(idx)]
+
+            obs_train, obs_test, obs_val = np.array(train_team['obs'].to_list()), np.array(test_team['obs'].to_list()), np.array(val_team['obs'].to_list())
+            act_train, act_test, act_val = np.array(train_team['actions'].to_list()), np.array(test_team['actions'].to_list()), np.array(val_team['actions'].to_list())
+            act_prob_train, act_prob_test, act_prob_val = np.array(train_team['action_prob'].to_list()), np.array(test_team['action_prob'].to_list()), np.array(val_team['action_prob'].to_list())
+            ids_train, ids_test, ids_val = np.array(train_team['agent_index'].to_list()), np.array(test_team['agent_index'].to_list()), np.array(val_team['agent_index'].to_list())
+            logits_train, logits_test, logits_val = np.array(train_team['logits'].to_list()), np.array(test_team['logits'].to_list()), np.array(val_team['logits'].to_list())
+            probs_train, probs_test, probs_val = np.array(train_team['probs'].to_list()), np.array(test_team['probs'].to_list()), np.array(val_team['probs'].to_list())
+
+            train_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_train), torch.from_numpy(act_train), torch.from_numpy(act_prob_train) ,torch.from_numpy(ids_train),torch.from_numpy(logits_train),torch.from_numpy(probs_train))    
+            all_train_dataloaders.append(torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True))
+
+            test_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_test), torch.from_numpy(act_test), torch.from_numpy(act_prob_test) ,torch.from_numpy(ids_test),torch.from_numpy(logits_test),torch.from_numpy(probs_test))
+            all_test_dataloaders.append(torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True))
+
+            val_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_val), torch.from_numpy(act_val), torch.from_numpy(act_prob_val) ,torch.from_numpy(ids_val),torch.from_numpy(logits_val),torch.from_numpy(probs_val))
+            all_val_dataloaders.append(torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True))
 
     return all_train_dataloaders, all_test_dataloaders, all_val_dataloaders
 
@@ -264,7 +289,7 @@ def test_loop(dataloaders, models, loss_fn):
 
 if __name__ == "__main__":
 
-    policies, loss_fn, optimizers = policy_model(num_networks= 4 if is_separated else 1)
+    policies, loss_fn, optimizers = policy_model(num_networks= num_models)
 
     train_loader, test_loader, val_loader = get_dataloaders(data=data)
 
@@ -288,13 +313,13 @@ if __name__ == "__main__":
 
         # save model
         if (t+1) % 200 == 0:
-            for i in range(len(policies)): torch.save(policies[i].state_dict(), f"{path}/model_p{i}_{t+1}_{spilt_start}_{is_separated}_{seed}.pth") 
+            for i in range(len(policies)): torch.save(policies[i].state_dict(), f"{path}/model_p{i}_{t+1}_{spilt_start}_{num_models}_{seed}.pth") 
             print("Saved PyTorch Model State to model.pth", flush=True)
 
             # save train and test losses and accuracies as numpy arrays
-            np.save(f'{path}/train_losses_{t+1}_{spilt_start}_{is_separated}_{seed}.npy', train_losses)
-            np.save(f'{path}/train_accuracies_{t+1}_{spilt_start}_{is_separated}_{seed}.npy', train_accuracies)
-            np.save(f'{path}/test_losses_{t+1}_{spilt_start}_{is_separated}_{seed}.npy', test_losses)
-            np.save(f'{path}/test_accuracies_{t+1}_{spilt_start}_{is_separated}_{seed}.npy', test_accuracies)
+            np.save(f'{path}/train_losses_{t+1}_{spilt_start}_{num_models}_{seed}.npy', train_losses)
+            np.save(f'{path}/train_accuracies_{t+1}_{spilt_start}_{num_models}_{seed}.npy', train_accuracies)
+            np.save(f'{path}/test_losses_{t+1}_{spilt_start}_{num_models}_{seed}.npy', test_losses)
+            np.save(f'{path}/test_accuracies_{t+1}_{spilt_start}_{num_models}_{seed}.npy', test_accuracies)
 
     print("Done!")
