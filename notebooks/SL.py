@@ -313,13 +313,13 @@ if __name__ == "__main__":
 
         # save model
         if (t+1) % 200 == 0:
-            for i in range(len(policies)): torch.save(policies[i].state_dict(), f"{path}/model_p{i}_{t+1}_{spilt_start}_{num_models}_{seed}.pth") 
+            for i in range(len(policies)): torch.save(policies[i].state_dict(), f"{path}/model_p{i}_{t+1}_{spilt_start}_{num_models}_{seed}_{learning_rate}.pth") 
             print("Saved PyTorch Model State to model.pth", flush=True)
 
             # save train and test losses and accuracies as numpy arrays
-            np.save(f'{path}/train_losses_{t+1}_{spilt_start}_{num_models}_{seed}.npy', train_losses)
-            np.save(f'{path}/train_accuracies_{t+1}_{spilt_start}_{num_models}_{seed}.npy', train_accuracies)
-            np.save(f'{path}/test_losses_{t+1}_{spilt_start}_{num_models}_{seed}.npy', test_losses)
-            np.save(f'{path}/test_accuracies_{t+1}_{spilt_start}_{num_models}_{seed}.npy', test_accuracies)
+            np.save(f'{path}/train_losses_{t+1}_{spilt_start}_{num_models}_{seed}_{learning_rate}.npy', train_losses)
+            np.save(f'{path}/train_accuracies_{t+1}_{spilt_start}_{num_models}_{seed}_{learning_rate}.npy', train_accuracies)
+            np.save(f'{path}/test_losses_{t+1}_{spilt_start}_{num_models}_{seed}_{learning_rate}.npy', test_losses)
+            np.save(f'{path}/test_accuracies_{t+1}_{spilt_start}_{num_models}_{seed}_{learning_rate}.npy', test_accuracies)
 
     print("Done!")
