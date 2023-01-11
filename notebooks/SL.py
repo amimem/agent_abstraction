@@ -34,6 +34,8 @@ torch.manual_seed(seed)
 np.random.seed(seed)
 
 epochs = 1000
+learning_rate = args.learning_rate
+batch_size = args.batch_size
 spilt_start = args.split_start
 num_models: int = args.num_models
 
