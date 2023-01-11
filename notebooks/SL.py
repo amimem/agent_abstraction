@@ -14,8 +14,6 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 n_input = 20
 n_hidden = 256
 n_out = 5
-batch_size = 25
-learning_rate = 0.01
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device", flush=True)
