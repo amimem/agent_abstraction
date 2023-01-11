@@ -115,7 +115,7 @@ def get_dataloaders(data, num_models = num_models, ratios=[spilt_start, 0.8, 0.9
     # 'separated' decides size of train, test and validation sets. 
     # If False, obs and actions are concatenated for separate agents. 
     # If False, obs and actions are separate for separate agents.
-    if num_models is num_agents:
+    if num_models == num_agents:
         for agent_ind in np.arange(num_agents):
 
             train_agent = train[train['agent_index'] == agent_ind]
@@ -141,7 +141,7 @@ def get_dataloaders(data, num_models = num_models, ratios=[spilt_start, 0.8, 0.9
             val_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_val), torch.from_numpy(act_val), torch.from_numpy(act_prob_val), torch.from_numpy(ids_val),torch.from_numpy(logits_val),torch.from_numpy(probs_val))
             val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
             all_val_dataloaders.append(val_dataloader)
-    elif num_models is 1:
+    elif num_models == 1:
         obs_train, obs_test, obs_val = np.array(train['obs'].to_list()), np.array(test['obs'].to_list()), np.array(val['obs'].to_list())
         act_train, act_test, act_val = np.array(train['actions'].to_list()), np.array(test['actions'].to_list()), np.array(val['actions'].to_list())
         act_prob_train, act_prob_test, act_prob_val = np.array(train['action_prob'].to_list()), np.array(test['action_prob'].to_list()), np.array(val['action_prob'].to_list())
@@ -159,7 +159,7 @@ def get_dataloaders(data, num_models = num_models, ratios=[spilt_start, 0.8, 0.9
         val_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_val), torch.from_numpy(act_val), torch.from_numpy(act_prob_val) ,torch.from_numpy(ids_val),torch.from_numpy(logits_val),torch.from_numpy(probs_val))
         all_val_dataloaders = [torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True)]
 
-    elif num_models is 2:
+    elif num_models == 2:
 
         teams_idx = [[0,1,2], [3]]
 
