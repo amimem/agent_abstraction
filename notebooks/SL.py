@@ -217,13 +217,13 @@ def policy_model(num_networks = 1):
 
 def train_loop(dataloaders, models, loss_fn, optimizers):
 
-    size = len(dataloaders[0].dataset)
-    num_batches = len(dataloaders[0])
-
     epoch_losses = []
     epoch_accuracies = []
 
     for model, optimizer, dataloader in zip(models, optimizers, dataloaders):
+
+        size = len(dataloader.dataset)
+        num_batches = len(dataloader)
 
         running_train_loss = 0.0 
         running_accuracy = 0.0 
@@ -260,14 +260,16 @@ def train_loop(dataloaders, models, loss_fn, optimizers):
     return epoch_losses, epoch_accuracies
 
 def test_loop(dataloaders, models, loss_fn):
-    size = len(dataloaders[0].dataset)
-    num_batches = len(dataloaders[0])
 
     epoch_losses = []
     epoch_accuracies = []
 
     with torch.no_grad():
         for model, dataloader in zip(models, dataloaders):
+
+            size = len(dataloader.dataset)
+            num_batches = len(dataloader)
+            
             test_loss, correct = 0, 0
             for batch, (obs, act, prob, idx, logits, probs) in enumerate(dataloader):
 
