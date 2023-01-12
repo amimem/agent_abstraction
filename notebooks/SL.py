@@ -1,11 +1,14 @@
 import torch
 import torch.nn as nn
+from torch.utils.data import Sampler
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy
 import glob
 import argparse
+import random
+
 # from torchmetrics import Accuracy
 
 import warnings
@@ -27,16 +30,19 @@ parser.add_argument('--learning_rate', type=float, default=0.01, help='learning 
 parser.add_argument('--split_start', type=float, default=0.0, help='start of the validation split')
 parser.add_argument('--num_models', type=int, default=0, help='whether to use the separated data or not')
 parser.add_argument('--seed', type=int, default=0, help='seed')
+parser.add_argument('--sampler', type=str, default='random', help='sampler to use')
 args = parser.parse_args()
 
 seed: int = args.seed
 torch.manual_seed(seed)
 np.random.seed(seed)
+random.seed(seed)
 
 epochs = 1000
 learning_rate = args.learning_rate
 batch_size = args.batch_size
-spilt_start = args.split_start
+split_start = args.split_start
+sampler = args.sampler
 num_models: int = args.num_models
 
 # %%
@@ -77,13 +83,31 @@ act = np.array(data['actions'].to_list())
 ids = np.array(data['agent_index'].to_list())
 
 # %%
-def get_dataloaders(data, num_models = num_models, ratios=[spilt_start, 0.8, 0.9]):
+class SequentialBatchSampler(Sampler):
+    def __init__(self, data_source, batch_size):
+        self.data_source = data_source
+        self.batch_size = batch_size
+        
+    def __iter__(self):
+        n = len(self.data_source)
+        #  starting index should have remainder of 0 
+        idx = [i for i in range(0, n, self.batch_size) if i % self.batch_size == 0]
+        random.shuffle(idx)
+        # yield sequential batches 
+        for i in range(0, len(idx)):
+            yield list(range(idx[i], idx[i] + self.batch_size))
+
+
+def get_dataloaders(data, num_models = num_models, split_start = split_start, batch_size = batch_size, sampler = sampler):
 
     # Shuffling by episode
-    groups = [data for _, data in data.groupby('eps_id')]
-    np.random.shuffle(groups)
-    data = pd.concat(groups).reset_index(drop=False)
-    data = data.sort_values(by=['eps_id','t','agent_index'],ignore_index=False)
+    # groups = [data for _, data in data.groupby('eps_id')]
+    # np.random.shuffle(groups)
+    # data = pd.concat(groups).reset_index(drop=False)
+
+    ratios=[split_start, 0.8, 0.9]
+
+    data = data.sort_values(by=['eps_id','agent_index', 't'],ignore_index=True)
     data = data.rename(columns={"action_dist_inputs": "logits"})
     data['probs'] = data['logits'].transform(scipy.special.softmax)
 
@@ -115,75 +139,64 @@ def get_dataloaders(data, num_models = num_models, ratios=[spilt_start, 0.8, 0.9
     # 'separated' decides size of train, test and validation sets. 
     # If False, obs and actions are concatenated for separate agents. 
     # If False, obs and actions are separate for separate agents.
-    if num_models == num_agents:
-        for agent_ind in np.arange(num_agents):
 
-            train_agent = train[train['agent_index'] == agent_ind]
-            test_agent = test[test['agent_index'] == agent_ind]
-            val_agent = val[val['agent_index'] == agent_ind]
+    train_partitions = []
+    test_partitions = []
+    val_partitions = []
 
-            obs_train, obs_test, obs_val = np.array(train_agent['obs'].to_list()), np.array(test_agent['obs'].to_list()), np.array(val_agent['obs'].to_list())
-            act_train, act_test, act_val = np.array(train_agent['actions'].to_list()), np.array(test_agent['actions'].to_list()), np.array(val_agent['actions'].to_list())
-            act_prob_train, act_prob_test, act_prob_val = np.array(train_agent['action_prob'].to_list()), np.array(test_agent['action_prob'].to_list()), np.array(val_agent['action_prob'].to_list())
-            ids_train, ids_test, ids_val = np.array(train_agent['agent_index'].to_list()), np.array(test_agent['agent_index'].to_list()), np.array(val_agent['agent_index'].to_list())
-            logits_train, logits_test, logits_val = np.array(train_agent['logits'].to_list()), np.array(test_agent['logits'].to_list()), np.array(val_agent['logits'].to_list())
-            probs_train, probs_test, probs_val = np.array(train_agent['probs'].to_list()), np.array(test_agent['probs'].to_list()), np.array(val_agent['probs'].to_list())
-
-
-            train_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_train), torch.from_numpy(act_train),torch.from_numpy(act_prob_train), torch.from_numpy(ids_train),torch.from_numpy(logits_train),torch.from_numpy(probs_train))
-            train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-            all_train_dataloaders.append(train_dataloader)
-
-            test_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_test), torch.from_numpy(act_test), torch.from_numpy(act_prob_test), torch.from_numpy(ids_test),torch.from_numpy(logits_test),torch.from_numpy(probs_test))
-            test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
-            all_test_dataloaders.append(test_dataloader)
-
-            val_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_val), torch.from_numpy(act_val), torch.from_numpy(act_prob_val), torch.from_numpy(ids_val),torch.from_numpy(logits_val),torch.from_numpy(probs_val))
-            val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
-            all_val_dataloaders.append(val_dataloader)
-    elif num_models == 1:
-        obs_train, obs_test, obs_val = np.array(train['obs'].to_list()), np.array(test['obs'].to_list()), np.array(val['obs'].to_list())
-        act_train, act_test, act_val = np.array(train['actions'].to_list()), np.array(test['actions'].to_list()), np.array(val['actions'].to_list())
-        act_prob_train, act_prob_test, act_prob_val = np.array(train['action_prob'].to_list()), np.array(test['action_prob'].to_list()), np.array(val['action_prob'].to_list())
-        ids_train, ids_test, ids_val = np.array(train['agent_index'].to_list()), np.array(test['agent_index'].to_list()), np.array(val['agent_index'].to_list())
-        logits_train, logits_test, logits_val = np.array(train['logits'].to_list()), np.array(test['logits'].to_list()), np.array(val['logits'].to_list())
-        probs_train, probs_test, probs_val = np.array(train['probs'].to_list()), np.array(test['probs'].to_list()), np.array(val['probs'].to_list())
-
-
-        train_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_train), torch.from_numpy(act_train), torch.from_numpy(act_prob_train) ,torch.from_numpy(ids_train),torch.from_numpy(logits_train),torch.from_numpy(probs_train))
-        all_train_dataloaders = [torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)]
-
-        test_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_test), torch.from_numpy(act_test), torch.from_numpy(act_prob_test) ,torch.from_numpy(ids_test),torch.from_numpy(logits_test),torch.from_numpy(probs_test))
-        all_test_dataloaders = [torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)]
-
-        val_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_val), torch.from_numpy(act_val), torch.from_numpy(act_prob_val) ,torch.from_numpy(ids_val),torch.from_numpy(logits_val),torch.from_numpy(probs_val))
-        all_val_dataloaders = [torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True)]
-
-    elif num_models == 2:
-
+    if num_models == 2:
         teams_idx = [[0,1,2], [3]]
-
         for idx in teams_idx:
             # if agent idx is in idx, then it is in the team
-            train_team = train[train['agent_index'].isin(idx)]
-            test_team = test[test['agent_index'].isin(idx)]
-            val_team = val[val['agent_index'].isin(idx)]
+            train_partitions.append(train[train['agent_index'].isin(idx)])
+            test_partitions.append(test[test['agent_index'].isin(idx)])
+            val_partitions.append(val[val['agent_index'].isin(idx)])
+    elif num_models == 1:
+        train_partitions.append(train)
+        test_partitions.append(test)
+        val_partitions.append(val)
+    elif num_models == num_agents:
+        for agent_ind in np.arange(num_agents):
+            train_partitions.append(train[train['agent_index'] == agent_ind])
+            test_partitions.append(test[test['agent_index'] == agent_ind])
+            val_partitions.append(val[val['agent_index'] == agent_ind])
+    else:
+        raise ValueError("num_models must be 1, 2 or num_agents")
 
-            obs_train, obs_test, obs_val = np.array(train_team['obs'].to_list()), np.array(test_team['obs'].to_list()), np.array(val_team['obs'].to_list())
-            act_train, act_test, act_val = np.array(train_team['actions'].to_list()), np.array(test_team['actions'].to_list()), np.array(val_team['actions'].to_list())
-            act_prob_train, act_prob_test, act_prob_val = np.array(train_team['action_prob'].to_list()), np.array(test_team['action_prob'].to_list()), np.array(val_team['action_prob'].to_list())
-            ids_train, ids_test, ids_val = np.array(train_team['agent_index'].to_list()), np.array(test_team['agent_index'].to_list()), np.array(val_team['agent_index'].to_list())
-            logits_train, logits_test, logits_val = np.array(train_team['logits'].to_list()), np.array(test_team['logits'].to_list()), np.array(val_team['logits'].to_list())
-            probs_train, probs_test, probs_val = np.array(train_team['probs'].to_list()), np.array(test_team['probs'].to_list()), np.array(val_team['probs'].to_list())
 
-            train_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_train), torch.from_numpy(act_train), torch.from_numpy(act_prob_train) ,torch.from_numpy(ids_train),torch.from_numpy(logits_train),torch.from_numpy(probs_train))    
-            all_train_dataloaders.append(torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True))
+    for i in np.arange(num_models):
 
-            test_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_test), torch.from_numpy(act_test), torch.from_numpy(act_prob_test) ,torch.from_numpy(ids_test),torch.from_numpy(logits_test),torch.from_numpy(probs_test))
-            all_test_dataloaders.append(torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True))
+        obs_train, obs_test, obs_val = np.array(train_partitions[i]['obs'].to_list()), np.array(test_partitions[i]['obs'].to_list()), np.array(val_partitions[i]['obs'].to_list())
+        act_train, act_test, act_val = np.array(train_partitions[i]['actions'].to_list()), np.array(test_partitions[i]['actions'].to_list()), np.array(val_partitions[i]['actions'].to_list())
+        act_prob_train, act_prob_test, act_prob_val = np.array(train_partitions[i]['action_prob'].to_list()), np.array(test_partitions[i]['action_prob'].to_list()), np.array(val_partitions[i]['action_prob'].to_list())
+        ids_train, ids_test, ids_val = np.array(train_partitions[i]['agent_index'].to_list()), np.array(test_partitions[i]['agent_index'].to_list()), np.array(val_partitions[i]['agent_index'].to_list())
+        logits_train, logits_test, logits_val = np.array(train_partitions[i]['logits'].to_list()), np.array(test_partitions[i]['logits'].to_list()), np.array(val_partitions[i]['logits'].to_list())
+        probs_train, probs_test, probs_val = np.array(train_partitions[i]['probs'].to_list()), np.array(test_partitions[i]['probs'].to_list()), np.array(val_partitions[i]['probs'].to_list())
 
-            val_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_val), torch.from_numpy(act_val), torch.from_numpy(act_prob_val) ,torch.from_numpy(ids_val),torch.from_numpy(logits_val),torch.from_numpy(probs_val))
-            all_val_dataloaders.append(torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True))
+
+        train_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_train), torch.from_numpy(act_train),torch.from_numpy(act_prob_train), torch.from_numpy(ids_train),torch.from_numpy(logits_train),torch.from_numpy(probs_train))
+        test_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_test), torch.from_numpy(act_test), torch.from_numpy(act_prob_test), torch.from_numpy(ids_test),torch.from_numpy(logits_test),torch.from_numpy(probs_test))
+        val_dataset = torch.utils.data.TensorDataset(torch.from_numpy(obs_val), torch.from_numpy(act_val), torch.from_numpy(act_prob_val), torch.from_numpy(ids_val),torch.from_numpy(logits_val),torch.from_numpy(probs_val))
+
+        if sampler == 'custom':
+            train_sampler = SequentialBatchSampler(train_dataset, batch_size=batch_size)
+            train_dataloader = torch.utils.data.DataLoader(train_dataset, sampler=train_sampler)
+            
+
+            test_sampler = SequentialBatchSampler(test_dataset, batch_size=batch_size)
+            test_dataloader = torch.utils.data.DataLoader(test_dataset, sampler=test_sampler)
+
+            val_sampler = SequentialBatchSampler(val_dataset, batch_size=batch_size)
+            val_dataloader = torch.utils.data.DataLoader(val_dataset, sampler=val_sampler)
+
+        else:
+            train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+            test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+            val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
+
+        all_train_dataloaders.append(train_dataloader)
+        all_test_dataloaders.append(test_dataloader)
+        all_val_dataloaders.append(val_dataloader)
 
     return all_train_dataloaders, all_test_dataloaders, all_val_dataloaders
 
@@ -315,13 +328,13 @@ if __name__ == "__main__":
 
         # save model
         if (t+1) % 200 == 0:
-            for i in range(len(policies)): torch.save(policies[i].state_dict(), f"{path}/model_p{i}_{t+1}_{spilt_start}_{num_models}_{seed}_{learning_rate}.pth") 
+            for i in range(len(policies)): torch.save(policies[i].state_dict(), f"{path}/model_p{i}_{t+1}_{split_start}_{num_models}_{seed}_{learning_rate}.pth") 
             print("Saved PyTorch Model State to model.pth", flush=True)
 
             # save train and test losses and accuracies as numpy arrays
-            np.save(f'{path}/train_losses_{t+1}_{spilt_start}_{num_models}_{seed}_{learning_rate}.npy', train_losses)
-            np.save(f'{path}/train_accuracies_{t+1}_{spilt_start}_{num_models}_{seed}_{learning_rate}.npy', train_accuracies)
-            np.save(f'{path}/test_losses_{t+1}_{spilt_start}_{num_models}_{seed}_{learning_rate}.npy', test_losses)
-            np.save(f'{path}/test_accuracies_{t+1}_{spilt_start}_{num_models}_{seed}_{learning_rate}.npy', test_accuracies)
+            np.save(f'{path}/train_losses_{t+1}_{split_start}_{num_models}_{seed}_{learning_rate}.npy', train_losses)
+            np.save(f'{path}/train_accuracies_{t+1}_{split_start}_{num_models}_{seed}_{learning_rate}.npy', train_accuracies)
+            np.save(f'{path}/test_losses_{t+1}_{split_start}_{num_models}_{seed}_{learning_rate}.npy', test_losses)
+            np.save(f'{path}/test_accuracies_{t+1}_{split_start}_{num_models}_{seed}_{learning_rate}.npy', test_accuracies)
 
     print("Done!")
