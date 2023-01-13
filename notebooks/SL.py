@@ -96,6 +96,9 @@ class SequentialBatchSampler(Sampler):
         # yield sequential batches 
         for i in range(0, len(idx)):
             yield list(range(idx[i], idx[i] + self.batch_size))
+            
+    def __len__(self):
+        return len(self.data_source) // self.batch_size
 
 
 def get_dataloaders(data, num_models = num_models, split_start = split_start, batch_size = batch_size, sampler = sampler):
