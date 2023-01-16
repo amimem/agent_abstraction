@@ -192,9 +192,13 @@ def get_dataloaders(data, num_models = num_models, split_start = split_start, ba
             val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_sampler=val_sampler)
 
         else:
-            train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-            test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
-            val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
+            if sampler == 'random':
+                shuffle_flag = True
+            else:
+                shuffle_flag = False
+            train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle_flag)
+            test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=shuffle_flag)
+            val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=shuffle_flag)
 
         all_train_dataloaders.append(train_dataloader)
         all_test_dataloaders.append(test_dataloader)
