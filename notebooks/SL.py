@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import Sampler
 import pandas as pd
 import numpy as np
@@ -8,6 +9,7 @@ import scipy
 import glob
 import argparse
 import random
+from torch.utils.data import DataLoader
 
 # from torchmetrics import Accuracy
 
@@ -100,6 +102,17 @@ class SequentialBatchSampler(Sampler):
     def __len__(self):
         return len(self.data_source) // self.batch_size
 
+class SplitDataloader(DataLoader):
+    def __init__(self, dataset, batch_size, sampler, num_models = 0):
+        super().__init__(dataset, batch_size, sampler = sampler)
+        self.dataset = dataset
+        self.batch_size = batch_size
+        self.sampler = sampler
+        self.num_models = num_models
+
+    def __getitem__(self, index):
+        # dataset has an extra dimension, what we would like to return is the sample at index i across all models, the first dimenstion of the dataset is the number of models
+        return [self.dataset[i][index] for i in range(self.num_models)]
 
 def get_dataloaders(data, num_models = num_models, split_start = split_start, batch_size = batch_size, sampler = sampler):
 
