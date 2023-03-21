@@ -257,20 +257,20 @@ class MultiInputMultiOutputNet(nn.Module):
 
         h11_out = self.hidden11(h11_in)
         h11_act = F.tanh(h11_out)
-        h12 = self.hidden12(h11_act)
-        h12_act = F.tanh(h12)
+        h21 = self.hidden21(h11_act)
+        h21_act = F.tanh(h21)
 
         if self.mode == 'team':
-            h21_in = x4
-            h21_out = self.hidden21(h21_in)
-            h21_act = F.tanh(h21_out)
+            h12_in = x4
+            h12_out = self.hidden12(h12_in)
+            h12_act = F.tanh(h12_out)
             h22 = self.hidden22(h21_act)
             h22_act = F.tanh(h22)
 
         output1 = self.fc5(h12_act)
         output2 = self.fc6(h12_act)
         output3 = self.fc7(h12_act)
-        output4 = self.fc8(h22_act) if self.mode == 'team' else self.fc8(h12_act)
+        output4 = self.fc8(h22_act) if self.mode == 'team' else self.fc8(h21_act)
         return output1, output2, output3, output4
 
 def train_model(net, train_data):
@@ -304,10 +304,15 @@ def train_model(net, train_data):
         # Forward pass
         output1, output2, output3, output4 = net(input1, input2, input3, input4)
         loss1 = criterion(output1, target1)
+        acc1 = (output1.argmax(1) == target1).float().mean()
         loss2 = criterion(output2, target2)
+        acc2 = (output2.argmax(1) == target2).float().mean()
         loss3 = criterion(output3, target3)
+        acc3 = (output3.argmax(1) == target3).float().mean()
         loss4 = criterion(output4, target4)
+        acc4 = (output4.argmax(1) == target4).float().mean()
         loss = loss1 + loss2 + loss3 + loss4
+        acc = (acc1 + acc2 + acc3 + acc4) / 4
         
         # Backward pass and optimization
         optimizer.zero_grad()
