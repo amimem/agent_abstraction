@@ -376,7 +376,7 @@ def train_model(net, train_data):
         running_train_loss += loss.item()
 
         if counter % 100 == 0:
-            print(f'Batch {counter}, Loss: {loss.item():.4f}')
+            print(f'Batch {counter}, Loss: {loss.item():.4f}, Accuracy: {acc.item():.4f}')
 
     epoch_loss = running_train_loss / counter
 
@@ -415,15 +415,20 @@ def test_model(net, test_data):
             # Forward pass
             output1, output2, output3, output4 = net(input1, input2, input3, input4)
             loss1 = criterion(output1, target1)
+            acc1 = (output1.argmax(1) == target1).float().mean()
             loss2 = criterion(output2, target2)
+            acc2 = (output2.argmax(1) == target2).float().mean()
             loss3 = criterion(output3, target3)
+            acc3 = (output3.argmax(1) == target3).float().mean()
             loss4 = criterion(output4, target4)
+            acc4 = (output4.argmax(1) == target4).float().mean()
             loss = loss1 + loss2 + loss3 + loss4
+            acc = (acc1 + acc2 + acc3 + acc4) / 4
             
             running_test_loss += loss.item()
 
             if counter % 100 == 0:
-                print(f'Batch {counter}, Loss: {loss.item():.4f}')
+                print(f'Batch {counter}, Loss: {loss.item():.4f}, Accuracy: {acc.item():.4f}')
 
     epoch_loss = running_test_loss / counter
 
