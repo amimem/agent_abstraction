@@ -257,25 +257,75 @@ class MultiInputMultiOutputNet(nn.Module):
         x3 = F.tanh(self.fc3(input3))
         x4 = F.tanh(self.fc4(input4))
 
-        h11_in = x1+x2+x3 if self.mode == 'team' else x1+x2+x3+x4
+        if mode == 'team':
+            h11_in = x1+x2+x3
+            h11_out = self.hidden11(h11_in)
+            h11_act = F.tanh(h11_out)
+            h21 = self.hidden21(h11_act)
+            h21_act = F.tanh(h21)
 
-        h11_out = self.hidden11(h11_in)
-        h11_act = F.tanh(h11_out)
-        h21 = self.hidden21(h11_act)
-        h21_act = F.tanh(h21)
-
-        if self.mode == 'team':
             h12_in = x4
             h12_out = self.hidden12(h12_in)
             h12_act = F.tanh(h12_out)
-            h22 = self.hidden22(h21_act)
+            h22 = self.hidden22(h12_act)
             h22_act = F.tanh(h22)
 
-        output1 = self.fc5(h12_act)
-        output2 = self.fc6(h12_act)
-        output3 = self.fc7(h12_act)
-        output4 = self.fc8(h22_act) if self.mode == 'team' else self.fc8(h21_act)
-        return output1, output2, output3, output4
+            output1 = self.fc5(h21_act)
+            output2 = self.fc6(h21_act)
+            output3 = self.fc7(h21_act)
+            output4 = self.fc8(h22_act)
+
+            return output1, output2, output3, output4
+
+        elif mode == 'single':
+            h11_in = x1+x2+x3+x4
+            h11_out = self.hidden11(h11_in)
+            h11_act = F.tanh(h11_out)
+            h21 = self.hidden21(h11_act)
+            h21_act = F.tanh(h21)
+
+            output1 = self.fc5(h21_act)
+            output2 = self.fc6(h21_act)
+            output3 = self.fc7(h21_act)
+            output4 = self.fc8(h21_act)
+
+            return output1, output2, output3, output4
+        
+        elif mode == 'indivdual':
+            h11_in = x1
+            h11_out = self.hidden11(h11_in)
+            h11_act = F.tanh(h11_out)
+            h21 = self.hidden21(h11_act)
+            h21_act = F.tanh(h21)
+
+            h12_in = x2
+            h12_out = self.hidden12(h12_in)
+            h12_act = F.tanh(h12_out)
+            h22 = self.hidden22(h12_act)
+            h22_act = F.tanh(h22)
+            
+            h13_in = x3
+            h13_out = self.hidden13(h13_in)
+            h13_act = F.tanh(h13_out)
+            h23 = self.hidden23(h13_act)
+            h23_act = F.tanh(h23)
+
+            h14_in = x4
+            h14_out = self.hidden14(h14_in)
+            h14_act = F.tanh(h14_out)
+            h24 = self.hidden24(h14_act)
+            h24_act = F.tanh(h24)
+
+            output1 = self.fc5(h21_act)
+            output2 = self.fc6(h22_act)
+            output3 = self.fc7(h23_act)
+            output4 = self.fc8(h24_act)
+
+            return output1, output2, output3, output4
+        
+        else:     
+            print('Please choose a valid mode')
+            return None
 
 def train_model(net, train_data):
     # Move the model to the GPU if available
