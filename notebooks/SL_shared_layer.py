@@ -257,7 +257,7 @@ class MultiInputMultiOutputNet(nn.Module):
         x3 = F.tanh(self.fc3(input3))
         x4 = F.tanh(self.fc4(input4))
 
-        if mode == 'team':
+        if self.mode == 'team':
             h11_in = x1+x2+x3
             h11_out = self.hidden11(h11_in)
             h11_act = F.tanh(h11_out)
@@ -277,7 +277,7 @@ class MultiInputMultiOutputNet(nn.Module):
 
             return output1, output2, output3, output4
 
-        elif mode == 'single':
+        elif self.mode == 'single':
             h11_in = x1+x2+x3+x4
             h11_out = self.hidden11(h11_in)
             h11_act = F.tanh(h11_out)
@@ -291,7 +291,7 @@ class MultiInputMultiOutputNet(nn.Module):
 
             return output1, output2, output3, output4
         
-        elif mode == 'indivdual':
+        elif self.mode == 'indivdual':
             h11_in = x1
             h11_out = self.hidden11(h11_in)
             h11_act = F.tanh(h11_out)
