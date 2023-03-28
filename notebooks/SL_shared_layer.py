@@ -21,7 +21,7 @@ print(f"Using {device} device", flush=True)
 # get arguments using argparse, such as path, batch size, learning rate, split start and a binary flag for whether to use the separated data or not, the seed to use
 
 parser = argparse.ArgumentParser(description='Train a neural network to predict actions from observations')
-parser.add_argument('--path', type=str, default='/Users/ens/repos/marl/notebooks', help='path to the data')
+parser.add_argument('--path', type=str, default='/home/mila/m/memariaa/scratch/new', help='path to the data')
 parser.add_argument('--batch_size', type=int, default=25, help='batch size')
 parser.add_argument('--learning_rate', type=float, default=0.01, help='learning rate')
 parser.add_argument('--split_start', type=float, default=0.0, help='start of the validation split')
