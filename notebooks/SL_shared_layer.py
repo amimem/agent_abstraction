@@ -331,7 +331,7 @@ def train_model(net, train_data):
     # Move the model to the GPU if available
     net.to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
 
     my_generator = data_generator(train_data, batch_size = 25)
 
@@ -460,7 +460,7 @@ def test_model(net, test_data):
 
 if __name__ == "__main__":
 
-    train_ds, test_ds, val_ds = get_datasets(data=data)
+    train_ds, test_ds, val_ds = get_datasets(data=data, split_start=split_start)
     model = MultiInputMultiOutputNet(input_size = n_input, hidden_size = n_hidden, output_size = n_out, mode=mode)
 
     train_losses = []
