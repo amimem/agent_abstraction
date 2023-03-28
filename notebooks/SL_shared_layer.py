@@ -349,14 +349,14 @@ def train_model(net, train_data):
         target1, target2, target3, target4 = batch_y[0], batch_y[1], batch_y[2], batch_y[3]
 
         # Tensorize the data form numpy arrays
-        input1 = torch.from_numpy(input1).float()
-        input2 = torch.from_numpy(input2).float()
-        input3 = torch.from_numpy(input3).float()
-        input4 = torch.from_numpy(input4).float()
-        target1 = torch.from_numpy(target1).long()
-        target2 = torch.from_numpy(target2).long()
-        target3 = torch.from_numpy(target3).long()
-        target4 = torch.from_numpy(target4).long()
+        input1 = torch.from_numpy(input1).float().to(device)
+        input2 = torch.from_numpy(input2).float().to(device)
+        input3 = torch.from_numpy(input3).float().to(device)
+        input4 = torch.from_numpy(input4).float().to(device)
+        target1 = torch.from_numpy(target1).long().to(device)
+        target2 = torch.from_numpy(target2).long().to(device)
+        target3 = torch.from_numpy(target3).long().to(device)
+        target4 = torch.from_numpy(target4).long().to(device)
         
         # Forward pass
         output1, output2, output3, output4 = net(input1, input2, input3, input4)
@@ -417,14 +417,14 @@ def test_model(net, test_data):
             target1, target2, target3, target4 = batch_y[0], batch_y[1], batch_y[2], batch_y[3]
 
             # Tensorize the data form numpy arrays
-            input1 = torch.from_numpy(input1).float()
-            input2 = torch.from_numpy(input2).float()
-            input3 = torch.from_numpy(input3).float()
-            input4 = torch.from_numpy(input4).float()
-            target1 = torch.from_numpy(target1).long()
-            target2 = torch.from_numpy(target2).long()
-            target3 = torch.from_numpy(target3).long()
-            target4 = torch.from_numpy(target4).long()
+            input1 = torch.from_numpy(input1).float().to(device)
+            input2 = torch.from_numpy(input2).float().to(device)
+            input3 = torch.from_numpy(input3).float().to(device)
+            input4 = torch.from_numpy(input4).float().to(device)
+            target1 = torch.from_numpy(target1).long().to(device)
+            target2 = torch.from_numpy(target2).long().to(device)
+            target3 = torch.from_numpy(target3).long().to(device)
+            target4 = torch.from_numpy(target4).long().to(device)
             
             # Forward pass
             output1, output2, output3, output4 = net(input1, input2, input3, input4)
