@@ -335,7 +335,10 @@ def train_model(net, train_data):
 
     my_generator = data_generator(train_data, batch_size = 25)
 
-    running_train_loss = 0.0
+    running_train_loss_1 = 0.0
+    running_train_loss_2 = 0.0
+    running_train_loss_3 = 0.0
+    running_train_loss_4 = 0.0
 
     # Iterate over the generator to get batches of data
     counter = 0
@@ -373,16 +376,24 @@ def train_model(net, train_data):
         loss.backward()
         optimizer.step()
 
-        running_train_loss += loss.item()
+        running_train_loss_1 += loss1.item()
+        running_train_loss_2 += loss2.item()
+        running_train_loss_3 += loss3.item()
+        running_train_loss_4 += loss4.item()
 
         if counter % 100 == 0:
             print(f'Batch {counter}, Loss: {loss.item():.4f}, Accuracy: {acc.item():.4f}')
 
-    epoch_loss = running_train_loss / counter
+    epoch_loss_1 = running_train_loss_1 / counter
+    epoch_loss_2 = running_train_loss_2 / counter
+    epoch_loss_3 = running_train_loss_3 / counter
+    epoch_loss_4 = running_train_loss_4 / counter
+
+    epoch_loss = (epoch_loss_1 + epoch_loss_2 + epoch_loss_3 + epoch_loss_4) / 4
 
     print(f"Train loss: {epoch_loss:>8f}" ,flush=True)
 
-    return epoch_loss
+    return [epoch_loss_1, epoch_loss_2, epoch_loss_3, epoch_loss_4]
 
 def test_model(net, test_data):
     # Move the model to the GPU if available
@@ -391,7 +402,10 @@ def test_model(net, test_data):
 
     my_generator = data_generator(test_data, batch_size = 25)
 
-    running_test_loss = 0.0
+    running_test_loss_1 = 0.0
+    running_test_loss_2 = 0.0
+    running_test_loss_3 = 0.0
+    running_test_loss_4 = 0.0
 
     # Iterate over the generator to get batches of data
     counter = 0
@@ -425,16 +439,24 @@ def test_model(net, test_data):
             loss = loss1 + loss2 + loss3 + loss4
             acc = (acc1 + acc2 + acc3 + acc4) / 4
             
-            running_test_loss += loss.item()
+            running_test_loss_1 += loss1.item()
+            running_test_loss_2 += loss2.item()
+            running_test_loss_3 += loss3.item()
+            running_test_loss_4 += loss4.item()
 
             if counter % 100 == 0:
                 print(f'Batch {counter}, Loss: {loss.item():.4f}, Accuracy: {acc.item():.4f}')
 
-    epoch_loss = running_test_loss / counter
+    epoch_loss_1 = running_test_loss_1 / counter
+    epoch_loss_2 = running_test_loss_2 / counter
+    epoch_loss_3 = running_test_loss_3 / counter
+    epoch_loss_4 = running_test_loss_4 / counter
+
+    epoch_loss = (epoch_loss_1 + epoch_loss_2 + epoch_loss_3 + epoch_loss_4) / 4
 
     print(f"Test loss: {epoch_loss:>8f}" ,flush=True)
 
-    return epoch_loss
+    return [epoch_loss_1, epoch_loss_2, epoch_loss_3, epoch_loss_4]
 
 if __name__ == "__main__":
 
@@ -458,7 +480,7 @@ if __name__ == "__main__":
         test_losses.append(test_loss)
 
         # save model
-        if (t+1) % 10 == 0:
+        if (t+1) % 50 == 0:
             torch.save(model.state_dict(), f'{path}/model_{t+1}_{split_start}_{seed}_{learning_rate}_{n_hidden}_{mode}.pth')
             print("Saved PyTorch Model State to model.pth", flush=True)
 
