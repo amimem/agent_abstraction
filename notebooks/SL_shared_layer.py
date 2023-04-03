@@ -27,7 +27,7 @@ parser.add_argument('--learning_rate', type=float, default=0.01, help='learning 
 parser.add_argument('--split_start', type=float, default=0.0, help='start of the validation split')
 parser.add_argument('--num_epochs', type=int, default=1000, help='number of epochs')
 parser.add_argument('--num_hidden', type=int, default=256, help='number of neurons in the hidden layer')
-parser.add_argument("--mode", type=str, default="team", help="team or individual")
+parser.add_argument("--mode", type=str, default="individual", help="team or individual")
 parser.add_argument('--seed', type=int, default=0, help='seed')
 args = parser.parse_args()
 
@@ -291,7 +291,7 @@ class MultiInputMultiOutputNet(nn.Module):
 
             return output1, output2, output3, output4
         
-        elif self.mode == 'indivdual':
+        elif self.mode == 'individual':
             h11_in = x1
             h11_out = self.hidden11(h11_in)
             h11_act = F.tanh(h11_out)
