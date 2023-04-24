@@ -30,6 +30,7 @@ parser.add_argument('--num_hidden', type=int, default=256, help='number of neuro
 parser.add_argument("--mode", type=str, default="individual", help="team or individual")
 parser.add_argument('--seed', type=int, default=0, help='seed')
 args = parser.parse_args()
+print("args=",args)
 
 n_input = 20
 n_hidden = args.num_hidden
@@ -319,11 +320,7 @@ class MultiInputMultiOutputNet(nn.Module):
             print('Please choose a valid mode')
             return None
 
-def train_model(net, train_data):
-    # Move the model to the GPU if available
-    net.to(device)
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
+def train_model(net, train_data, criterion, optimizer):
 
     my_generator = data_generator(train_data, batch_size = 25)
 
@@ -373,7 +370,7 @@ def train_model(net, train_data):
         running_train_loss_3 += loss3.item()
         running_train_loss_4 += loss4.item()
 
-        if counter % 100 == 0:
+        if counter % 200 == 0:
             print(f'Batch {counter}, Loss: {loss.item():.4f}, Accuracy: {acc.item():.4f}')
 
     epoch_loss_1 = running_train_loss_1 / counter
@@ -387,10 +384,10 @@ def train_model(net, train_data):
 
     return [epoch_loss_1, epoch_loss_2, epoch_loss_3, epoch_loss_4]
 
-def test_model(net, test_data):
+def test_model(net, test_data, criterion):
     # Move the model to the GPU if available
-    net.to(device)
-    criterion = nn.CrossEntropyLoss()
+    #net.to(device)
+    # criterion = nn.CrossEntropyLoss()
 
     my_generator = data_generator(test_data, batch_size = 25)
 
@@ -436,7 +433,7 @@ def test_model(net, test_data):
             running_test_loss_3 += loss3.item()
             running_test_loss_4 += loss4.item()
 
-            if counter % 100 == 0:
+            if counter % 200 == 0:
                 print(f'Batch {counter}, Loss: {loss.item():.4f}, Accuracy: {acc.item():.4f}')
 
     epoch_loss_1 = running_test_loss_1 / counter
@@ -455,6 +452,15 @@ if __name__ == "__main__":
     train_ds, test_ds, val_ds = get_datasets(data=data, split_start=split_start)
     model = MultiInputMultiOutputNet(input_size = n_input, hidden_size = n_hidden, output_size = n_out, mode=mode)
 
+    # Move the model to the GPU if available
+    model.to(device)
+    criterion = nn.CrossEntropyLoss()
+    # print("params=",model.parameters())
+    # for name, params in model.named_parameters():
+    #     print(name,params.data.size())
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    
+
     train_losses = []
     train_accuracies = []
 
@@ -465,21 +471,21 @@ if __name__ == "__main__":
 
         print(f"Epoch {t+1}\n-------------------------------", flush=True)
 
-        train_loss = train_model(model, train_ds)
-        test_loss = test_model(model, test_ds)
+        train_loss = train_model(model, train_ds, criterion, optimizer)
+        test_loss = test_model(model, test_ds, criterion)
 
         train_losses.append(train_loss)
         test_losses.append(test_loss)
 
         # save model
-        if (t+1) % 50 == 0:
-            torch.save(model.state_dict(), f'{path}/model_{t+1}_{split_start}_{seed}_{learning_rate}_{n_hidden}_{mode}.pth')
-            print("Saved PyTorch Model State to model.pth", flush=True)
+        if (t+1) % 200 == 0:
+           torch.save(model.state_dict(), f'{path}/model_{t+1}_{split_start}_{seed}_{learning_rate}_{n_hidden}_{mode}.pth')
+           print("Saved PyTorch Model State to model.pth", flush=True)
 
-            # save train and test losses and accuracies as numpy arrays
-            np.save(f'{path}/train_losses_{t+1}_{split_start}_{seed}_{learning_rate}_{n_hidden}_{mode}.npy', train_losses)
-            np.save(f'{path}/train_accuracies_{t+1}_{split_start}_{seed}_{learning_rate}_{n_hidden}_{mode}.npy', train_accuracies)
-            np.save(f'{path}/test_losses_{t+1}_{split_start}_{seed}_{learning_rate}_{n_hidden}_{mode}.npy', test_losses)
-            np.save(f'{path}/test_accuracies_{t+1}_{split_start}_{seed}_{learning_rate}_{n_hidden}_{mode}.npy', test_accuracies)
+           # save train and test losses and accuracies as numpy arrays
+           np.save(f'{path}/train_losses_{t+1}_{split_start}_{seed}_{learning_rate}_{n_hidden}_{mode}.npy', train_losses)
+           np.save(f'{path}/train_accuracies_{t+1}_{split_start}_{seed}_{learning_rate}_{n_hidden}_{mode}.npy', train_accuracies)
+           np.save(f'{path}/test_losses_{t+1}_{split_start}_{seed}_{learning_rate}_{n_hidden}_{mode}.npy', test_losses)
+           np.save(f'{path}/test_accuracies_{t+1}_{split_start}_{seed}_{learning_rate}_{n_hidden}_{mode}.npy', test_accuracies)
 
     print("Done!")
