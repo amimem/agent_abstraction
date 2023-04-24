@@ -83,29 +83,7 @@ act = np.array(data['actions'].to_list())
 ids = np.array(data['agent_index'].to_list())
 
 # %%
-class SequentialBatchSampler(Sampler):
-    def __init__(self, data_source, batch_size):
-        self.data_source = data_source
-        self.batch_size = batch_size
-        
-    def __iter__(self):
-        n = len(self.data_source)
-        #  starting index should have remainder of 0 
-        idx = [i for i in range(0, n, self.batch_size) if i % self.batch_size == 0]
-        random.shuffle(idx)
-        # yield sequential batches 
-        for i in range(0, len(idx)):
-            yield list(range(idx[i], idx[i] + self.batch_size))
-            
-    def __len__(self):
-        return len(self.data_source) // self.batch_size
-
 def get_datasets(data, split_start = 0.7):
-
-    # Shuffling by episode
-    # groups = [data for _, data in data.groupby('eps_id')]
-    # np.random.shuffle(groups)
-    # data = pd.concat(groups).reset_index(drop=False)
 
     ratios=[split_start, 0.8, 0.9]
 
@@ -230,6 +208,10 @@ def data_generator(data, batch_size):
 
 class MultiInputMultiOutputNet(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, mode = 'team'):
+        """Input size is 20 because that is the size of the observation space for each agent.
+        Output size is 5 because that is the size of the action space for each agent.
+        Mode is either 'team', 'individual' or 'single'."""
+
         super(MultiInputMultiOutputNet, self).__init__()
 
         self.mode = mode
@@ -258,18 +240,23 @@ class MultiInputMultiOutputNet(nn.Module):
         x4 = F.tanh(self.fc4(input4))
 
         if self.mode == 'team':
+            # Team mode
+            # Input is the output of activations of all predators last layers, summed up
             h11_in = x1+x2+x3
             h11_out = self.hidden11(h11_in)
             h11_act = F.tanh(h11_out)
             h21 = self.hidden21(h11_act)
             h21_act = F.tanh(h21)
 
+            # The prey has its own hidden layer, separate from the predators
             h12_in = x4
             h12_out = self.hidden12(h12_in)
             h12_act = F.tanh(h12_out)
             h22 = self.hidden22(h12_act)
             h22_act = F.tanh(h22)
 
+            # Each predator and the prey get their own fully connected layer for output,
+            # but the predators share the same hidden layer as input
             output1 = self.fc5(h21_act)
             output2 = self.fc6(h21_act)
             output3 = self.fc7(h21_act)
@@ -278,12 +265,15 @@ class MultiInputMultiOutputNet(nn.Module):
             return output1, output2, output3, output4
 
         elif self.mode == 'single':
+            # Single mode
+            # Just use one hidden layer for all agents
             h11_in = x1+x2+x3+x4
             h11_out = self.hidden11(h11_in)
             h11_act = F.tanh(h11_out)
             h21 = self.hidden21(h11_act)
             h21_act = F.tanh(h21)
 
+            # Each agent has its own fully connected layer for output
             output1 = self.fc5(h21_act)
             output2 = self.fc6(h21_act)
             output3 = self.fc7(h21_act)
@@ -292,6 +282,8 @@ class MultiInputMultiOutputNet(nn.Module):
             return output1, output2, output3, output4
         
         elif self.mode == 'individual':
+            # Individual mode
+            # Each agent has its own hidden layer and fully connected layer for output
             h11_in = x1
             h11_out = self.hidden11(h11_in)
             h11_act = F.tanh(h11_out)
