@@ -21,13 +21,13 @@ print(f"Using {device} device", flush=True)
 # get arguments using argparse, such as path, batch size, learning rate, split start and a binary flag for whether to use the separated data or not, the seed to use
 
 parser = argparse.ArgumentParser(description='Train a neural network to predict actions from observations')
-parser.add_argument('--path', type=str, default='/home/mila/m/memariaa/scratch/new', help='path to the data')
+parser.add_argument('--path', type=str, default='/Users/ens/repos/marl/notebooks', help='path to the data')
 parser.add_argument('--batch_size', type=int, default=25, help='batch size')
-parser.add_argument('--learning_rate', type=float, default=0.01, help='learning rate')
-parser.add_argument('--split_start', type=float, default=0.0, help='start of the validation split')
+parser.add_argument('--learning_rate', type=float, default=0.001, help='learning rate')
+parser.add_argument('--split_start', type=float, default=0.79, help='start of the validation split')
 parser.add_argument('--num_epochs', type=int, default=1000, help='number of epochs')
 parser.add_argument('--num_hidden', type=int, default=256, help='number of neurons in the hidden layer')
-parser.add_argument("--mode", type=str, default="individual", help="team or individual")
+parser.add_argument("--mode", type=str, default="single", help="team or individual")
 parser.add_argument('--seed', type=int, default=0, help='seed')
 args = parser.parse_args()
 print("args=",args)
@@ -207,6 +207,8 @@ def data_generator(data, batch_size):
         batch_X, batch_y = X[:, start_idx:end_idx], y[:, start_idx:end_idx]
         yield batch_X, batch_y
 
+    yield X, y
+
 class MultiInputMultiOutputNet(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, mode = 'team'):
         """Input size is 20 because that is the size of the observation space for each agent.
@@ -320,9 +322,8 @@ class MultiInputMultiOutputNet(nn.Module):
             print('Please choose a valid mode')
             return None
 
-def train_model(net, train_data, criterion, optimizer):
-
-    my_generator = data_generator(train_data, batch_size = 25)
+def train_model(net, criterion, optimizer, generator):
+    net.train()
 
     running_train_loss_1 = 0.0
     running_train_loss_2 = 0.0
@@ -331,7 +332,7 @@ def train_model(net, train_data, criterion, optimizer):
 
     # Iterate over the generator to get batches of data
     counter = 0
-    for batch_X, batch_y in my_generator:
+    for batch_X, batch_y in generator:
         counter += 1
 
         input1, input2, input3, input4 = batch_X[0], batch_X[1], batch_X[2], batch_X[3]
@@ -384,12 +385,8 @@ def train_model(net, train_data, criterion, optimizer):
 
     return [epoch_loss_1, epoch_loss_2, epoch_loss_3, epoch_loss_4]
 
-def test_model(net, test_data, criterion):
-    # Move the model to the GPU if available
-    #net.to(device)
-    # criterion = nn.CrossEntropyLoss()
-
-    my_generator = data_generator(test_data, batch_size = 25)
+def test_model(net, criterion, generator):
+    net.eval()
 
     running_test_loss_1 = 0.0
     running_test_loss_2 = 0.0
@@ -399,7 +396,7 @@ def test_model(net, test_data, criterion):
     # Iterate over the generator to get batches of data
     counter = 0
     with torch.no_grad():
-        for batch_X, batch_y in my_generator:
+        for batch_X, batch_y in generator:
             counter += 1
 
             input1, input2, input3, input4 = batch_X[0], batch_X[1], batch_X[2], batch_X[3]
@@ -443,7 +440,7 @@ def test_model(net, test_data, criterion):
 
     epoch_loss = (epoch_loss_1 + epoch_loss_2 + epoch_loss_3 + epoch_loss_4) / 4
 
-    print(f"Test loss: {epoch_loss:>8f}" ,flush=True)
+    print(f"Test loss: {epoch_loss:>8f}", flush=True)
 
     return [epoch_loss_1, epoch_loss_2, epoch_loss_3, epoch_loss_4]
 
@@ -459,7 +456,6 @@ if __name__ == "__main__":
     # for name, params in model.named_parameters():
     #     print(name,params.data.size())
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    
 
     train_losses = []
     train_accuracies = []
@@ -471,8 +467,13 @@ if __name__ == "__main__":
 
         print(f"Epoch {t+1}\n-------------------------------", flush=True)
 
-        train_loss = train_model(model, train_ds, criterion, optimizer)
-        test_loss = test_model(model, test_ds, criterion)
+        train_generator = data_generator(train_ds, batch_size = batch_size)
+
+        train_loss = train_model(model, train_ds, criterion, optimizer, train_generator)
+
+        test_generator = data_generator(train_ds, batch_size = test_ds[-1].shape[-1])
+
+        test_loss = test_model(model, train_ds, criterion, test_generator)
 
         train_losses.append(train_loss)
         test_losses.append(test_loss)
