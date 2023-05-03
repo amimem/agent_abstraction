@@ -207,7 +207,7 @@ def data_generator(data, batch_size):
         batch_X, batch_y = X[:, start_idx:end_idx], y[:, start_idx:end_idx]
         yield batch_X, batch_y
 
-    yield X, y
+    # yield X, y
 
 class MultiInputMultiOutputNet(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, mode = 'team'):
