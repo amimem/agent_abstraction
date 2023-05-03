@@ -469,11 +469,11 @@ if __name__ == "__main__":
 
         train_generator = data_generator(train_ds, batch_size = batch_size)
 
-        train_loss = train_model(model, train_ds, criterion, optimizer, train_generator)
+        train_loss = train_model(model, criterion, optimizer, train_generator)
 
-        test_generator = data_generator(train_ds, batch_size = test_ds[-1].shape[-1])
+        test_generator = data_generator(test_ds, batch_size = test_ds[-1].shape[-1])
 
-        test_loss = test_model(model, train_ds, criterion, test_generator)
+        test_loss = test_model(model, criterion, test_generator)
 
         train_losses.append(train_loss)
         test_losses.append(test_loss)
