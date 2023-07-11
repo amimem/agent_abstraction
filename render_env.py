@@ -312,32 +312,48 @@ def select_episodes(df_whole, selection=None, n=10):
         )
 
     elif selection == "max_reward":
-        return df_whole[
-            df_whole["eps_id"].isin(
-                get_episode_ids(df_whole, n, selection="max_reward")
-            )
-        ].sort_values(by=["eps_id", "t", "agent_index"], inplace=False)
+        return (
+            df_whole[
+                df_whole["eps_id"].isin(
+                    get_episode_ids(df_whole, n, selection="max_reward")
+                )
+            ]
+            .sort_values(by=["eps_id", "t", "agent_index"], inplace=False)
+            .drop_duplicates(["eps_id", "agent_index", "t"])
+        )
 
     elif selection == "min_reward":
-        return df_whole[
-            df_whole["eps_id"].isin(
-                get_episode_ids(df_whole, n, selection="min_reward")
-            )
-        ].sort_values(by=["eps_id", "t", "agent_index"], inplace=False)
+        return (
+            df_whole[
+                df_whole["eps_id"].isin(
+                    get_episode_ids(df_whole, n, selection="min_reward")
+                )
+            ]
+            .sort_values(by=["eps_id", "t", "agent_index"], inplace=False)
+            .drop_duplicates(["eps_id", "agent_index", "t"])
+        )
 
     elif selection == "first":
-        return df_whole[
-            df_whole["eps_id"].isin(
-                get_episode_ids(df_whole, n, selection="first")
-            )
-        ].sort_values(by=["eps_id", "t", "agent_index"], inplace=False)
+        return (
+            df_whole[
+                df_whole["eps_id"].isin(
+                    get_episode_ids(df_whole, n, selection="first")
+                )
+            ]
+            .sort_values(by=["eps_id", "t", "agent_index"], inplace=False)
+            .drop_duplicates(["eps_id", "agent_index", "t"])
+        )
 
     elif selection == "random":
-        return df_whole[
-            df_whole["eps_id"].isin(
-                get_episode_ids(df_whole, n, selection="random")
-            )
-        ].sort_values(by=["eps_id", "t", "agent_index"], inplace=False)
+        return (
+            df_whole[
+                df_whole["eps_id"].isin(
+                    get_episode_ids(df_whole, n, selection="random")
+                )
+            ]
+            .sort_values(by=["eps_id", "t", "agent_index"], inplace=False)
+            .drop_duplicates(["eps_id", "agent_index", "t"])
+        )
 
     # elif eps_ids is iterable, such as a list or nparray:
     elif isinstance(selection, (list, np.ndarray)):
@@ -382,14 +398,17 @@ def get_episode_ids(df_whole, n=10, selection="first"):
             .sum()
             .sort_values(ascending=False)
         )
+
     elif selection == "min_reward":
         rewards_agent_0 = (
             df_agent_0.groupby("eps_id")["rewards"]
             .sum()
             .sort_values(ascending=True)
         )
+
     elif selection == "first":
         rewards_agent_0 = df_agent_0.groupby("eps_id")["rewards"].sum()
+
     elif selection == "random":
         rewards_agent_0 = (
             df_agent_0.groupby("eps_id")["rewards"].sum().sample(frac=1)
@@ -407,12 +426,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--file",
         type=str,
+        default="output-2023-06-15_17-17-14_worker-4_0_data.pkl",
         help="The name of the file to load",
     )
     parser.add_argument(
         "--n",
         type=int,
-        default=1,
         help="The number of episodes to render",
     )
     args = parser.parse_args()
@@ -429,6 +448,7 @@ if __name__ == "__main__":
         print(
             "No number of rendering episodes specified with --n, defaulting to 1..."
         )
+        n = 1
 
     # load the data from the checkpoint file
     df_whole = load_checkpoint_data(file)
