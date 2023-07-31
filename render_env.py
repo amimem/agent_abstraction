@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from scipy.interpolate import interp1d
+from matplotlib.patches import Rectangle
 import datetime
 import pickle5 as pickle
 import os
@@ -214,7 +215,14 @@ def plot_reward_distribution(df_whole, filename, train_test_split=0.9):
 
 
 def render_episode_selection(
-    df_whole, selection, filename, n=10, num_interpolation_points=10
+    df_whole,
+    selection,
+    filename,
+    n=10,
+    num_interpolation_points=10,
+    predator_dot_size=1122,
+    prey_dot_size=499,
+    entity_dot_size=7980,
 ):
     print(f"Rendering {n} {selection} episodes...")
     plotting_eps = select_episodes(df_whole, selection=selection, n=n)
@@ -301,23 +309,38 @@ def render_episode_selection(
     rewards_interp = rewards_interp.reshape(-1)
 
     # render the animation
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(7.29, 7.29))  # inches
 
     ax.set_xlim(
-        positions_interp[:, :, 0].min(), positions_interp[:, :, 0].max()
+        -1.2,
+        1.2,
     )
     ax.set_ylim(
-        positions_interp[:, :, 1].min(), positions_interp[:, :, 1].max()
+        -1.2,
+        1.2,
     )
 
+    ax.add_patch(
+        Rectangle(
+            (-1, -1),
+            2,
+            2,
+            alpha=1,
+            facecolor="none",
+            linestyle="dashed",
+            edgecolor="black",
+            linewidth=1,
+        )
+    )
     # predators are red dots, prey is a green dot, entities are blue squares
     scatters = [
         ax.scatter(
             positions_interp[0, agent_id, 0],
             positions_interp[0, agent_id, 1],
-            s=np.pi * 18**2,
+            s=predator_dot_size,
             color="red",
             label=f"Predator {agent_id}",
+            edgecolors="black",
         )
         for agent_id in [0, 1, 2]
     ]
@@ -327,8 +350,9 @@ def render_episode_selection(
             positions_interp[0, 3, 0],
             positions_interp[0, 3, 1],
             label="Prey",
-            s=np.pi * 12**2,
+            s=prey_dot_size,
             color="green",
+            edgecolors="black",
         )
     )
 
@@ -337,9 +361,9 @@ def render_episode_selection(
             positions_interp[0, 4, 0],
             positions_interp[0, 4, 1],
             label="Entity 1",
-            marker="s",
-            s=400,
+            s=entity_dot_size,
             color="blue",
+            edgecolors="black",
         )
     )
 
@@ -348,9 +372,9 @@ def render_episode_selection(
             positions_interp[0, 5, 0],
             positions_interp[0, 5, 1],
             label="Entity 2",
-            marker="s",
-            s=400,
+            s=entity_dot_size,
             color="blue",
+            edgecolors="black",
         )
     )
 
@@ -421,6 +445,26 @@ def update_plot(
     # update timestep_text to show the current timestep with one decimal place
     timestep_text.set_text(f"Timestep: {timesteps[frame]:.1f}")
     reward_text.set_text(f"Reward: {rewards_interp[frame]:.1f}")
+
+    if 0 < abs(rewards_interp[frame]) < 10:
+        # change the color of the prey's scatter to yellow if the reward is close to zero
+        scatters[3].set_color("yellow")
+        scatters[3].set_linewidth(1.5)
+        scatters[3].set_edgecolor("black")
+
+    elif abs(rewards_interp[frame]) >= 10:
+        # change the color of the prey's scatter to orange if the reward is far from zero
+        scatters[3].set_color("darkorange")
+        scatters[3].set_linewidth(5)
+        scatters[3].set_edgecolor("purple")
+
+    elif abs(rewards_interp[frame]) == 0:
+        scatters[3].set_color("green")
+        scatters[3].set_linewidth(1.5)
+        scatters[3].set_edgecolor("black")
+
+    else:
+        raise ValueError("Reward is not a number")
 
     return scatters
 
