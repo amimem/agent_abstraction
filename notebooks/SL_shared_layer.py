@@ -9,6 +9,10 @@ import scipy
 import glob
 import argparse
 import random
+import wandb
+
+wandb.login()
+
 
 # from torchmetrics import Accuracy
 
@@ -21,16 +25,24 @@ print(f"Using {device} device", flush=True)
 # get arguments using argparse, such as path, batch size, learning rate, split start and a binary flag for whether to use the separated data or not, the seed to use
 
 parser = argparse.ArgumentParser(description='Train a neural network to predict actions from observations')
-parser.add_argument('--path', type=str, default='/Users/ens/repos/marl/notebooks', help='path to the data')
+parser.add_argument('--path', type=str, default='~/scratch/PPOTrainer_simple_tag_2023-05-01_18-07-366vvv6cw2/checkpoint_020001', help='path to the data')
 parser.add_argument('--batch_size', type=int, default=25, help='batch size')
 parser.add_argument('--learning_rate', type=float, default=0.001, help='learning rate')
-parser.add_argument('--split_start', type=float, default=0.79, help='start of the validation split')
-parser.add_argument('--num_epochs', type=int, default=1000, help='number of epochs')
+parser.add_argument('--split_start', type=float, default=0.89, help='start of the validation split')
+parser.add_argument('--num_epochs', type=int, default=1, help='number of epochs')
 parser.add_argument('--num_hidden', type=int, default=256, help='number of neurons in the hidden layer')
 parser.add_argument("--mode", type=str, default="single", help="team or individual")
 parser.add_argument('--seed', type=int, default=0, help='seed')
 args = parser.parse_args()
 print("args=",args)
+
+run = wandb.init(
+    # Set the project where this run will be logged
+    project="SL_project",
+    # Track hyperparameters and run metadata
+    config= vars(args)
+    )
+
 
 n_input = 20
 n_hidden = args.num_hidden
@@ -42,7 +54,7 @@ torch.manual_seed(seed)
 np.random.seed(seed)
 random.seed(seed)
 
-epochs = 1000
+epochs = args.num_epochs
 learning_rate = args.learning_rate
 batch_size = args.batch_size
 split_start = args.split_start
@@ -50,18 +62,18 @@ split_start = args.split_start
 # find all pickle files in the current directory using glob
 
 path = args.path
-# all_files = glob.glob(path + "/*.pkl")
+all_files = glob.glob(path + "/*.pkl")
 
-# # create a list of dataframes
-# li = []
+# create a list of dataframes
+li = []
 
-# for filename in all_files:
-#     df = pd.read_pickle(filename)
-#     li.append(df)
+for filename in all_files:
+    df = pd.read_pickle(filename)
+    li.append(df)
 
 # concatenate the list of dataframes into one dataframe
-# data = pd.concat(li, axis=0, ignore_index=True)
-data = pd.read_hdf(f"{path}/data.h5", key="df")
+data = pd.concat(li, axis=0, ignore_index=True)
+# data = pd.read_pickle(f"{path}/concated.pkl")
 # try:
 #     # Attempt to load the pickle file using the latest version of pandas.
 #     data = pd.read_pickle('/home/mila/m/memariaa/scratch/new/data.pkl')
@@ -86,17 +98,17 @@ ids = np.array(data['agent_index'].to_list())
 # %%
 def get_datasets(data, split_start = 0.7):
 
-    ratios=[split_start, 0.8, 0.9]
+    ratios=[split_start, 0.9, 1.0]
 
     data = data.sort_values(by=['eps_id','agent_index', 't'], ignore_index=True)
     data = data.rename(columns={"action_dist_inputs": "logits"})
-    data['probs'] = data['logits'].transform(scipy.special.softmax)
+    # data['probs'] = data['logits'].transform(scipy.special.softmax)
 
     # do train test validation split on the data
     # the data is split into ratios[0:1] train, ratios[1:2] test, ratios[2:]validation
     # the data is shuffled before splitting
     # splitting dataset by episodes
-    num_episodes = len(data['eps_id'].unique())
+    num_episodes = len(data['eps_id'].unique()) - (len(data['eps_id'].unique()) % batch_size)
     length_of_epi = max(data['t'].unique()) + 1
     num_agents = len(data['agent_index'].unique())
     _, train, test, val = np.split(data, [int(ratios[0]*length_of_epi*num_agents*num_episodes),int(ratios[1]*length_of_epi*num_agents*num_episodes), int(ratios[2]*length_of_epi*num_agents*num_episodes)])
@@ -131,9 +143,9 @@ def get_datasets(data, split_start = 0.7):
     logits_train = []
     logits_test = []
     logits_val = []
-    probs_train = []
-    probs_test = []
-    probs_val = []
+    # probs_train = []
+    # probs_test = []
+    # probs_val = []
 
 
     for i in np.arange(num_agents):
@@ -153,9 +165,9 @@ def get_datasets(data, split_start = 0.7):
         logits_train.append(np.array(train_partitions[i]['logits'].to_list()))
         logits_test.append(np.array(test_partitions[i]['logits'].to_list()))
         logits_val.append(np.array(val_partitions[i]['logits'].to_list()))
-        probs_train.append(np.array(train_partitions[i]['probs'].to_list()))
-        probs_test.append(np.array(test_partitions[i]['probs'].to_list()))
-        probs_val.append(np.array(val_partitions[i]['probs'].to_list()))
+        # probs_train.append(np.array(train_partitions[i]['probs'].to_list()))
+        # probs_test.append(np.array(test_partitions[i]['probs'].to_list()))
+        # probs_val.append(np.array(val_partitions[i]['probs'].to_list()))
 
     obs_train = np.array(obs_train)
     obs_test = np.array(obs_test)
@@ -172,9 +184,9 @@ def get_datasets(data, split_start = 0.7):
     logits_train = np.array(logits_train)
     logits_test = np.array(logits_test)
     logits_val = np.array(logits_val)
-    probs_train = np.array(probs_train)
-    probs_test = np.array(probs_test)
-    probs_val = np.array(probs_val)
+    # probs_train = np.array(probs_train)
+    # probs_test = np.array(probs_test)
+    # probs_val = np.array(probs_val)
 
     print("obs_train shape: ", obs_train.shape)
 
@@ -235,6 +247,41 @@ class MultiInputMultiOutputNet(nn.Module):
         self.fc6 = nn.Linear(hidden_size, output_size)
         self.fc7 = nn.Linear(hidden_size, output_size)
         self.fc8 = nn.Linear(hidden_size, output_size)
+
+        nn.init.xavier_uniform_(self.fc1.weight)
+        nn.init.xavier_uniform_(self.fc2.weight)
+        nn.init.xavier_uniform_(self.fc3.weight)
+        nn.init.xavier_uniform_(self.fc4.weight)
+        nn.init.xavier_uniform_(self.hidden11.weight)
+        nn.init.xavier_uniform_(self.hidden21.weight)
+        nn.init.xavier_uniform_(self.hidden12.weight)
+        nn.init.xavier_uniform_(self.hidden22.weight)
+        nn.init.xavier_uniform_(self.hidden13.weight)
+        nn.init.xavier_uniform_(self.hidden23.weight)
+        nn.init.xavier_uniform_(self.hidden14.weight)
+        nn.init.xavier_uniform_(self.hidden24.weight)
+        nn.init.xavier_uniform_(self.fc5.weight)
+        nn.init.xavier_uniform_(self.fc6.weight)
+        nn.init.xavier_uniform_(self.fc7.weight)
+        nn.init.xavier_uniform_(self.fc8.weight)
+
+        nn.init.constant_(self.fc1.bias, 0.0)
+        nn.init.constant_(self.fc2.bias, 0.0)
+        nn.init.constant_(self.fc3.bias, 0.0)
+        nn.init.constant_(self.fc4.bias, 0.0)
+        nn.init.constant_(self.hidden11.bias, 0.0)
+        nn.init.constant_(self.hidden21.bias, 0.0)
+        nn.init.constant_(self.hidden12.bias, 0.0)
+        nn.init.constant_(self.hidden22.bias, 0.0)
+        nn.init.constant_(self.hidden13.bias, 0.0)
+        nn.init.constant_(self.hidden23.bias, 0.0)
+        nn.init.constant_(self.hidden14.bias, 0.0)
+        nn.init.constant_(self.hidden24.bias, 0.0)
+        nn.init.constant_(self.fc5.bias, 0.0)
+        nn.init.constant_(self.fc6.bias, 0.0)
+        nn.init.constant_(self.fc7.bias, 0.0)
+        nn.init.constant_(self.fc8.bias, 0.0)
+
 
     def forward(self, input1, input2, input3, input4):
         x1 = F.tanh(self.fc1(input1))
@@ -330,6 +377,11 @@ def train_model(net, criterion, optimizer, generator):
     running_train_loss_3 = 0.0
     running_train_loss_4 = 0.0
 
+    running_train_acc_1 = 0.0
+    running_train_acc_2 = 0.0
+    running_train_acc_3 = 0.0
+    running_train_acc_4 = 0.0
+
     # Iterate over the generator to get batches of data
     counter = 0
     for batch_X, batch_y in generator:
@@ -360,6 +412,8 @@ def train_model(net, criterion, optimizer, generator):
         acc4 = (output4.argmax(1) == target4).float().mean()
         loss = loss1 + loss2 + loss3 + loss4
         acc = (acc1 + acc2 + acc3 + acc4) / 4
+
+        wandb.log({"train loss sum": loss.item(), "0_train_raw": loss1.item(), "1_train_raw": loss2.item(), "2_train_raw": loss3.item(), "3_train_raw": loss4.item()})
         
         # Backward pass and optimization
         optimizer.zero_grad()
@@ -371,7 +425,12 @@ def train_model(net, criterion, optimizer, generator):
         running_train_loss_3 += loss3.item()
         running_train_loss_4 += loss4.item()
 
-        if counter % 200 == 0:
+        running_train_acc_1 += acc1.item()
+        running_train_acc_2 += acc2.item()
+        running_train_acc_3 += acc3.item()
+        running_train_acc_4 += acc4.item()
+
+        if counter % 1000 == 0:
             print(f'Batch {counter}, Loss: {loss.item():.4f}, Accuracy: {acc.item():.4f}')
 
     epoch_loss_1 = running_train_loss_1 / counter
@@ -379,11 +438,16 @@ def train_model(net, criterion, optimizer, generator):
     epoch_loss_3 = running_train_loss_3 / counter
     epoch_loss_4 = running_train_loss_4 / counter
 
+    epoch_acc_1 = running_train_acc_1 / counter
+    epoch_acc_2 = running_train_acc_2 / counter
+    epoch_acc_3 = running_train_acc_3 / counter
+    epoch_acc_4 = running_train_acc_4 / counter
+
     epoch_loss = (epoch_loss_1 + epoch_loss_2 + epoch_loss_3 + epoch_loss_4) / 4
 
     print(f"Train loss: {epoch_loss:>8f}" ,flush=True)
 
-    return [epoch_loss_1, epoch_loss_2, epoch_loss_3, epoch_loss_4]
+    return [epoch_loss_1, epoch_loss_2, epoch_loss_3, epoch_loss_4], [epoch_acc_1, epoch_acc_2, epoch_acc_3, epoch_acc_4]
 
 def test_model(net, criterion, generator):
     net.eval()
@@ -392,6 +456,11 @@ def test_model(net, criterion, generator):
     running_test_loss_2 = 0.0
     running_test_loss_3 = 0.0
     running_test_loss_4 = 0.0
+
+    running_test_acc_1 = 0.0
+    running_test_acc_2 = 0.0
+    running_test_acc_3 = 0.0
+    running_test_acc_4 = 0.0
 
     # Iterate over the generator to get batches of data
     counter = 0
@@ -430,7 +499,12 @@ def test_model(net, criterion, generator):
             running_test_loss_3 += loss3.item()
             running_test_loss_4 += loss4.item()
 
-            if counter % 200 == 0:
+            running_test_acc_1 += acc1.item()
+            running_test_acc_2 += acc2.item()
+            running_test_acc_3 += acc3.item()
+            running_test_acc_4 += acc4.item()
+
+            if counter % 20000 == 0:
                 print(f'Batch {counter}, Loss: {loss.item():.4f}, Accuracy: {acc.item():.4f}')
 
     epoch_loss_1 = running_test_loss_1 / counter
@@ -438,11 +512,16 @@ def test_model(net, criterion, generator):
     epoch_loss_3 = running_test_loss_3 / counter
     epoch_loss_4 = running_test_loss_4 / counter
 
+    epoch_acc_1 = running_test_acc_1 / counter
+    epoch_acc_2 = running_test_acc_2 / counter
+    epoch_acc_3 = running_test_acc_3 / counter
+    epoch_acc_4 = running_test_acc_4 / counter
+
     epoch_loss = (epoch_loss_1 + epoch_loss_2 + epoch_loss_3 + epoch_loss_4) / 4
 
     print(f"Test loss: {epoch_loss:>8f}", flush=True)
 
-    return [epoch_loss_1, epoch_loss_2, epoch_loss_3, epoch_loss_4]
+    return [epoch_loss_1, epoch_loss_2, epoch_loss_3, epoch_loss_4], [epoch_acc_1, epoch_acc_2, epoch_acc_3, epoch_acc_4]
 
 if __name__ == "__main__":
 
@@ -468,20 +547,45 @@ if __name__ == "__main__":
         print(f"Epoch {t+1}\n-------------------------------", flush=True)
 
         train_generator = data_generator(train_ds, batch_size = batch_size)
-
-        train_loss = train_model(model, criterion, optimizer, train_generator)
-
         test_generator = data_generator(test_ds, batch_size = test_ds[-1].shape[-1])
 
-        test_loss = test_model(model, criterion, test_generator)
+        if t == 0:
+            # get 0th epoch loss by passing train data to the test model
+            train_loss, train_acc = test_model(model, criterion, train_generator)
+            wandb.log({"epoch": t, "mean train loss": np.mean(train_loss), "0_train": train_loss[0], "1_train": train_loss[1], "2_train": train_loss[2], "3_train": train_loss[3]})
+            wandb.log({"epoch": t, "mean train acc": np.mean(train_acc), "0_train": train_acc[0], "1_train": train_acc[1], "2_train": train_acc[2], "3_train": train_acc[3]})
+            train_losses.append(train_loss)
+            train_accuracies.append(train_acc)
+
+            # get 0th epoch loss by passing test data to the test model
+            test_loss, test_acc = test_model(model, criterion, test_generator)
+            wandb.log({"epoch": t, "mean test loss": np.mean(test_loss), "0_test": test_loss[0], "1_test": test_loss[1], "2_test": test_loss[2], "3_test": test_loss[3]})
+            wandb.log({"epoch": t, "mean test acc": np.mean(test_acc), "0_test": test_acc[0], "1_test": test_acc[1], "2_test": test_acc[2], "3_test": test_acc[3]})
+            test_losses.append(test_loss)
+            test_accuracies.append(test_acc)
+
+            # skip training for the 0th epoch
+            continue
+            
+        train_loss, train_acc = train_model(model, criterion, optimizer, train_generator)
+
+        wandb.log({"epoch": t, "mean train loss": np.mean(train_loss), "0_train": train_loss[0], "1_train": train_loss[1], "2_train": train_loss[2], "3_train": train_loss[3]})
+        wandb.log({"epoch": t, "mean train acc": np.mean(train_acc), "0_train": train_acc[0], "1_train": train_acc[1], "2_train": train_acc[2], "3_train": train_acc[3]})
+
+        test_loss, test_acc = test_model(model, criterion, test_generator)
+
+        wandb.log({"epoch": t, "mean test loss": np.mean(test_loss), "0_test": test_loss[0], "1_test": test_loss[1], "2_test": test_loss[2], "3_test": test_loss[3]})
+        wandb.log({"epoch": t, "mean test acc": np.mean(test_acc), "0_test": test_acc[0], "1_test": test_acc[1], "2_test": test_acc[2], "3_test": test_acc[3]})
 
         train_losses.append(train_loss)
         test_losses.append(test_loss)
+        train_accuracies.append(train_acc)
+        test_accuracies.append(test_acc)
 
         # save model
-        if (t+1) % 200 == 0:
-           torch.save(model.state_dict(), f'{path}/model_{t+1}_{split_start}_{seed}_{learning_rate}_{n_hidden}_{mode}.pth')
-           print("Saved PyTorch Model State to model.pth", flush=True)
+        if (t+1) % 2 == 0:
+        #    torch.save(model.state_dict(), f'{path}/model_{t+1}_{split_start}_{seed}_{learning_rate}_{n_hidden}_{mode}.pth')
+        #    print("Saved PyTorch Model State to model.pth", flush=True)
 
            # save train and test losses and accuracies as numpy arrays
            np.save(f'{path}/train_losses_{t+1}_{split_start}_{seed}_{learning_rate}_{n_hidden}_{mode}.npy', train_losses)
