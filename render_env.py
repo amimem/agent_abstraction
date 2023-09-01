@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from scipy.interpolate import interp1d
+from matplotlib.patches import Rectangle
 import datetime
 import pickle5 as pickle
 import os
@@ -13,6 +14,103 @@ def load_checkpoint_data(checkpoint_path):
     with open(checkpoint_path, "rb") as f:
         df_whole = pickle.load(f)
     return df_whole
+
+
+def get_episode_ids(df_whole, n=10, selection="first"):
+    # separate df_whole into one dataframe per agent
+    df_agent_0 = df_whole[df_whole["agent_index"] == 0]  # 0,1,2 are predators
+
+    if selection == "max_reward":
+        # sum the rewards of each agent across episodes and sort them in descending order
+        rewards_agent_0 = (
+            df_agent_0.groupby("eps_id")["rewards"]
+            .sum()
+            .sort_values(ascending=False)
+        )
+
+    elif selection == "min_reward":
+        rewards_agent_0 = (
+            df_agent_0.groupby("eps_id")["rewards"]
+            .sum()
+            .sort_values(ascending=True)
+        )
+
+    elif selection == "first":
+        rewards_agent_0 = df_agent_0.groupby("eps_id")["rewards"].sum()
+
+    elif selection == "random":
+        rewards_agent_0 = (
+            df_agent_0.groupby("eps_id")["rewards"].sum().sample(frac=1)
+        )
+    else:
+        raise ValueError(
+            "selection must be 'max_reward', 'min_reward', 'first' or 'random'"
+        )
+
+    return rewards_agent_0.index.unique()[:n]
+
+
+def select_episodes(df_whole, selection=None, n=10):
+    if selection is None:
+        print("No episodes provided, returning all episodes...")
+        return df_whole.sort_values(
+            by=["eps_id", "t", "agent_index"], inplace=True
+        )
+
+    elif selection == "max_reward":
+        return (
+            df_whole[
+                df_whole["eps_id"].isin(
+                    get_episode_ids(df_whole, n, selection="max_reward")
+                )
+            ]
+            .sort_values(by=["eps_id", "t", "agent_index"], inplace=False)
+            .drop_duplicates(["eps_id", "agent_index", "t"])
+        )
+
+    elif selection == "min_reward":
+        return (
+            df_whole[
+                df_whole["eps_id"].isin(
+                    get_episode_ids(df_whole, n, selection="min_reward")
+                )
+            ]
+            .sort_values(by=["eps_id", "t", "agent_index"], inplace=False)
+            .drop_duplicates(["eps_id", "agent_index", "t"])
+        )
+
+    elif selection == "first":
+        return (
+            df_whole[
+                df_whole["eps_id"].isin(
+                    get_episode_ids(df_whole, n, selection="first")
+                )
+            ]
+            .sort_values(by=["eps_id", "t", "agent_index"], inplace=False)
+            .drop_duplicates(["eps_id", "agent_index", "t"])
+        )
+
+    elif selection == "random":
+        return (
+            df_whole[
+                df_whole["eps_id"].isin(
+                    get_episode_ids(df_whole, n, selection="random")
+                )
+            ]
+            .sort_values(by=["eps_id", "t", "agent_index"], inplace=False)
+            .drop_duplicates(["eps_id", "agent_index", "t"])
+        )
+
+    # elif eps_ids is iterable, such as a list or nparray:
+    elif isinstance(selection, (list, np.ndarray)):
+        return df_whole[df_whole["eps_id"].isin(selection)].sort_values(
+            by=["eps_id", "t", "agent_index"], inplace=True
+        )
+
+    else:
+        raise ValueError(
+            "selection must be None, 'max_reward', 'min_reward', 'first', 'random' or an iterable such as a list or nparray"
+        )
 
 
 def plot_action_probs(df_whole, filename, train_test_split=0.9):
@@ -117,7 +215,14 @@ def plot_reward_distribution(df_whole, filename, train_test_split=0.9):
 
 
 def render_episode_selection(
-    df_whole, selection, filename, n=10, num_interpolation_points=10
+    df_whole,
+    selection,
+    filename,
+    n=10,
+    num_interpolation_points=10,
+    predator_dot_size=1122,
+    prey_dot_size=499,
+    entity_dot_size=7980,
 ):
     print(f"Rendering {n} {selection} episodes...")
     plotting_eps = select_episodes(df_whole, selection=selection, n=n)
@@ -204,23 +309,38 @@ def render_episode_selection(
     rewards_interp = rewards_interp.reshape(-1)
 
     # render the animation
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(7.29, 7.29))  # inches
 
     ax.set_xlim(
-        positions_interp[:, :, 0].min(), positions_interp[:, :, 0].max()
+        -1.2,
+        1.2,
     )
     ax.set_ylim(
-        positions_interp[:, :, 1].min(), positions_interp[:, :, 1].max()
+        -1.2,
+        1.2,
     )
 
+    ax.add_patch(
+        Rectangle(
+            (-1, -1),
+            2,
+            2,
+            alpha=1,
+            facecolor="none",
+            linestyle="dashed",
+            edgecolor="black",
+            linewidth=1,
+        )
+    )
     # predators are red dots, prey is a green dot, entities are blue squares
     scatters = [
         ax.scatter(
             positions_interp[0, agent_id, 0],
             positions_interp[0, agent_id, 1],
-            s=np.pi * 18**2,
+            s=predator_dot_size,
             color="red",
             label=f"Predator {agent_id}",
+            edgecolors="black",
         )
         for agent_id in [0, 1, 2]
     ]
@@ -230,8 +350,9 @@ def render_episode_selection(
             positions_interp[0, 3, 0],
             positions_interp[0, 3, 1],
             label="Prey",
-            s=np.pi * 12**2,
+            s=prey_dot_size,
             color="green",
+            edgecolors="black",
         )
     )
 
@@ -240,9 +361,9 @@ def render_episode_selection(
             positions_interp[0, 4, 0],
             positions_interp[0, 4, 1],
             label="Entity 1",
-            marker="s",
-            s=400,
+            s=entity_dot_size,
             color="blue",
+            edgecolors="black",
         )
     )
 
@@ -251,13 +372,15 @@ def render_episode_selection(
             positions_interp[0, 5, 0],
             positions_interp[0, 5, 1],
             label="Entity 2",
-            marker="s",
-            s=400,
+            s=entity_dot_size,
             color="blue",
+            edgecolors="black",
         )
     )
 
-    # add the timesteps to the plot
+    ax.set_title(f"Predators {selection} - {n} episodes", fontsize=16)
+
+    # selection is title
     timestep_text = ax.text(
         0.05,
         0.95,
@@ -266,6 +389,8 @@ def render_episode_selection(
         fontsize=14,
         verticalalignment="top",
     )
+
+    # add the timesteps to the plot
 
     # add the rewards to the plot
     reward_text = ax.text(
@@ -304,69 +429,6 @@ def render_episode_selection(
     plt.close()
 
 
-def select_episodes(df_whole, selection=None, n=10):
-    if selection is None:
-        print("No episodes provided, returning all episodes...")
-        return df_whole.sort_values(
-            by=["eps_id", "t", "agent_index"], inplace=True
-        )
-
-    elif selection == "max_reward":
-        return (
-            df_whole[
-                df_whole["eps_id"].isin(
-                    get_episode_ids(df_whole, n, selection="max_reward")
-                )
-            ]
-            .sort_values(by=["eps_id", "t", "agent_index"], inplace=False)
-            .drop_duplicates(["eps_id", "agent_index", "t"])
-        )
-
-    elif selection == "min_reward":
-        return (
-            df_whole[
-                df_whole["eps_id"].isin(
-                    get_episode_ids(df_whole, n, selection="min_reward")
-                )
-            ]
-            .sort_values(by=["eps_id", "t", "agent_index"], inplace=False)
-            .drop_duplicates(["eps_id", "agent_index", "t"])
-        )
-
-    elif selection == "first":
-        return (
-            df_whole[
-                df_whole["eps_id"].isin(
-                    get_episode_ids(df_whole, n, selection="first")
-                )
-            ]
-            .sort_values(by=["eps_id", "t", "agent_index"], inplace=False)
-            .drop_duplicates(["eps_id", "agent_index", "t"])
-        )
-
-    elif selection == "random":
-        return (
-            df_whole[
-                df_whole["eps_id"].isin(
-                    get_episode_ids(df_whole, n, selection="random")
-                )
-            ]
-            .sort_values(by=["eps_id", "t", "agent_index"], inplace=False)
-            .drop_duplicates(["eps_id", "agent_index", "t"])
-        )
-
-    # elif eps_ids is iterable, such as a list or nparray:
-    elif isinstance(selection, (list, np.ndarray)):
-        return df_whole[df_whole["eps_id"].isin(selection)].sort_values(
-            by=["eps_id", "t", "agent_index"], inplace=True
-        )
-
-    else:
-        raise ValueError(
-            "selection must be None, 'max_reward', 'min_reward', 'first', 'random' or an iterable such as a list or nparray"
-        )
-
-
 def update_plot(
     frame,
     coordinates,
@@ -384,41 +446,27 @@ def update_plot(
     timestep_text.set_text(f"Timestep: {timesteps[frame]:.1f}")
     reward_text.set_text(f"Reward: {rewards_interp[frame]:.1f}")
 
-    return scatters
+    if 0 < abs(rewards_interp[frame]) < 10:
+        # change the color of the prey's scatter to yellow if the reward is close to zero
+        scatters[3].set_color("yellow")
+        scatters[3].set_linewidth(1.5)
+        scatters[3].set_edgecolor("black")
 
+    elif abs(rewards_interp[frame]) >= 10:
+        # change the color of the prey's scatter to orange if the reward is far from zero
+        scatters[3].set_color("darkorange")
+        scatters[3].set_linewidth(5)
+        scatters[3].set_edgecolor("purple")
 
-def get_episode_ids(df_whole, n=10, selection="first"):
-    # separate df_whole into one dataframe per agent
-    df_agent_0 = df_whole[df_whole["agent_index"] == 0]  # 0,1,2 are predators
+    elif abs(rewards_interp[frame]) == 0:
+        scatters[3].set_color("green")
+        scatters[3].set_linewidth(1.5)
+        scatters[3].set_edgecolor("black")
 
-    if selection == "max_reward":
-        # sum the rewards of each agent across episodes and sort them in descending order
-        rewards_agent_0 = (
-            df_agent_0.groupby("eps_id")["rewards"]
-            .sum()
-            .sort_values(ascending=False)
-        )
-
-    elif selection == "min_reward":
-        rewards_agent_0 = (
-            df_agent_0.groupby("eps_id")["rewards"]
-            .sum()
-            .sort_values(ascending=True)
-        )
-
-    elif selection == "first":
-        rewards_agent_0 = df_agent_0.groupby("eps_id")["rewards"].sum()
-
-    elif selection == "random":
-        rewards_agent_0 = (
-            df_agent_0.groupby("eps_id")["rewards"].sum().sample(frac=1)
-        )
     else:
-        raise ValueError(
-            "selection must be 'max_reward', 'min_reward', 'first' or 'random'"
-        )
+        raise ValueError("Reward is not a number")
 
-    return rewards_agent_0.index.unique()[:n]
+    return scatters
 
 
 if __name__ == "__main__":
@@ -477,7 +525,7 @@ if __name__ == "__main__":
     # render the first n episodes, the n episodes with the highest reward, and the n episodes with the lowest reward
     render_episode_selection(
         df_whole,
-        selection="first",
+        selection="random",
         filename=file.split(".")[0] + datetime_str,
         n=n,
     )
