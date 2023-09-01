@@ -25,7 +25,7 @@ print(f"Using {device} device", flush=True)
 # get arguments using argparse, such as path, batch size, learning rate, split start and a binary flag for whether to use the separated data or not, the seed to use
 
 parser = argparse.ArgumentParser(description='Train a neural network to predict actions from observations')
-parser.add_argument('--path', type=str, default='~/scratch/PPOTrainer_simple_tag_2023-05-01_18-07-366vvv6cw2/checkpoint_020001', help='path to the data')
+parser.add_argument('--path', type=str, default='/home/mila/m/memariaa/scratch/PPOTrainer_simple_tag_2023-05-01_18-07-366vvv6cw2/checkpoint_020001', help='path to the data')
 parser.add_argument('--batch_size', type=int, default=25, help='batch size')
 parser.add_argument('--learning_rate', type=float, default=0.001, help='learning rate')
 parser.add_argument('--split_start', type=float, default=0.89, help='start of the validation split')
@@ -99,7 +99,7 @@ ids = np.array(data['agent_index'].to_list())
 def get_datasets(data, split_start = 0.7):
 
     ratios=[split_start, 0.9, 1.0]
-
+    
     data = data.sort_values(by=['eps_id','agent_index', 't'], ignore_index=True)
     data = data.rename(columns={"action_dist_inputs": "logits"})
     # data['probs'] = data['logits'].transform(scipy.special.softmax)
@@ -108,6 +108,9 @@ def get_datasets(data, split_start = 0.7):
     # the data is split into ratios[0:1] train, ratios[1:2] test, ratios[2:]validation
     # the data is shuffled before splitting
     # splitting dataset by episodes
+
+    # shuffle the data
+    data = data.sample(frac=1).reset_index(drop=True)
     num_episodes = len(data['eps_id'].unique()) - (len(data['eps_id'].unique()) % batch_size)
     length_of_epi = max(data['t'].unique()) + 1
     num_agents = len(data['agent_index'].unique())
@@ -204,7 +207,7 @@ def data_generator(data, batch_size):
 
     # shuffle the data
     randomize = np.arange(len(y))
-    np.random.shuffle(randomize)
+    # np.random.shuffle(randomize)
     X = X[randomize]
     y = y[randomize]
     
@@ -413,7 +416,8 @@ def train_model(net, criterion, optimizer, generator):
         loss = loss1 + loss2 + loss3 + loss4
         acc = (acc1 + acc2 + acc3 + acc4) / 4
 
-        wandb.log({"train loss sum": loss.item(), "0_train_raw": loss1.item(), "1_train_raw": loss2.item(), "2_train_raw": loss3.item(), "3_train_raw": loss4.item()})
+        wandb.log({"train loss sum": loss.item(), "0_train_batch_loss": loss1.item(), "1_train_batch_loss": loss2.item(), "2_train_batch_loss": loss3.item(), "3_train_batch_loss": loss4.item()})
+        wandb.log({"train accuracy sum": acc.item(), "0_train_batch_acc": acc1.item(), "1_train_batch_acc": acc2.item(), "2_train_batch_acc": acc3.item(), "3_train_batch_acc": acc4.item()})
         
         # Backward pass and optimization
         optimizer.zero_grad()
@@ -552,15 +556,19 @@ if __name__ == "__main__":
         if t == 0:
             # get 0th epoch loss by passing train data to the test model
             train_loss, train_acc = test_model(model, criterion, train_generator)
-            wandb.log({"epoch": t, "mean train loss": np.mean(train_loss), "0_train": train_loss[0], "1_train": train_loss[1], "2_train": train_loss[2], "3_train": train_loss[3]})
-            wandb.log({"epoch": t, "mean train acc": np.mean(train_acc), "0_train": train_acc[0], "1_train": train_acc[1], "2_train": train_acc[2], "3_train": train_acc[3]})
+
+            wandb.log({"epoch": t, "mean train loss": np.mean(train_loss), "0_train_loss": train_loss[0], "1_train_loss": train_loss[1], "2_train_loss": train_loss[2], "3_train_loss": train_loss[3]})
+            wandb.log({"epoch": t, "mean train acc": np.mean(train_acc), "0_train_acc": train_acc[0], "1_train_acc": train_acc[1], "2_train_acc": train_acc[2], "3_train_acc": train_acc[3]})
+
             train_losses.append(train_loss)
             train_accuracies.append(train_acc)
 
             # get 0th epoch loss by passing test data to the test model
             test_loss, test_acc = test_model(model, criterion, test_generator)
-            wandb.log({"epoch": t, "mean test loss": np.mean(test_loss), "0_test": test_loss[0], "1_test": test_loss[1], "2_test": test_loss[2], "3_test": test_loss[3]})
-            wandb.log({"epoch": t, "mean test acc": np.mean(test_acc), "0_test": test_acc[0], "1_test": test_acc[1], "2_test": test_acc[2], "3_test": test_acc[3]})
+
+            wandb.log({"epoch": t, "mean test loss": np.mean(test_loss), "0_test_loss": test_loss[0], "1_test_loss": test_loss[1], "2_test_loss": test_loss[2], "3_test_loss": test_loss[3]})
+            wandb.log({"epoch": t, "mean test acc": np.mean(test_acc), "0_test_acc": test_acc[0], "1_test_acc": test_acc[1], "2_test_acc": test_acc[2], "3_test_acc": test_acc[3]})
+
             test_losses.append(test_loss)
             test_accuracies.append(test_acc)
 
@@ -569,13 +577,13 @@ if __name__ == "__main__":
             
         train_loss, train_acc = train_model(model, criterion, optimizer, train_generator)
 
-        wandb.log({"epoch": t, "mean train loss": np.mean(train_loss), "0_train": train_loss[0], "1_train": train_loss[1], "2_train": train_loss[2], "3_train": train_loss[3]})
-        wandb.log({"epoch": t, "mean train acc": np.mean(train_acc), "0_train": train_acc[0], "1_train": train_acc[1], "2_train": train_acc[2], "3_train": train_acc[3]})
+        wandb.log({"epoch": t, "mean train loss": np.mean(train_loss), "0_train_loss": train_loss[0], "1_train_loss": train_loss[1], "2_train_loss": train_loss[2], "3_train_loss": train_loss[3]})
+        wandb.log({"epoch": t, "mean train acc": np.mean(train_acc), "0_train_acc": train_acc[0], "1_train_acc": train_acc[1], "2_train_acc": train_acc[2], "3_train_acc": train_acc[3]})
 
         test_loss, test_acc = test_model(model, criterion, test_generator)
 
-        wandb.log({"epoch": t, "mean test loss": np.mean(test_loss), "0_test": test_loss[0], "1_test": test_loss[1], "2_test": test_loss[2], "3_test": test_loss[3]})
-        wandb.log({"epoch": t, "mean test acc": np.mean(test_acc), "0_test": test_acc[0], "1_test": test_acc[1], "2_test": test_acc[2], "3_test": test_acc[3]})
+        wandb.log({"epoch": t, "mean test loss": np.mean(test_loss), "0_test_loss": test_loss[0], "1_test_loss": test_loss[1], "2_test_loss": test_loss[2], "3_test_loss": test_loss[3]})
+        wandb.log({"epoch": t, "mean test acc": np.mean(test_acc), "0_test_acc": test_acc[0], "1_test_acc": test_acc[1], "2_test_acc": test_acc[2], "3_test_acc": test_acc[3]})
 
         train_losses.append(train_loss)
         test_losses.append(test_loss)
@@ -594,3 +602,5 @@ if __name__ == "__main__":
            np.save(f'{path}/test_accuracies_{t+1}_{split_start}_{seed}_{learning_rate}_{n_hidden}_{mode}.npy', test_accuracies)
 
     print("Done!")
+
+# %%
