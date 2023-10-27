@@ -13,6 +13,7 @@ import wandb
 
 wandb.login()
 
+wandb.init(dir="/home/mila/m/memariaa/scratch/wandb")
 
 # from torchmetrics import Accuracy
 
@@ -29,6 +30,7 @@ parser.add_argument('--path', type=str, default='/home/mila/m/memariaa/scratch/P
 parser.add_argument('--batch_size', type=int, default=25, help='batch size')
 parser.add_argument('--learning_rate', type=float, default=0.001, help='learning rate')
 parser.add_argument('--split_start', type=float, default=0.89, help='start of the validation split')
+parser.add_argument('--train_cut', type=int, default=1000, help='how many episodes to use for training')
 parser.add_argument('--num_epochs', type=int, default=1, help='number of epochs')
 parser.add_argument('--num_hidden', type=int, default=256, help='number of neurons in the hidden layer')
 parser.add_argument("--mode", type=str, default="single", help="team or individual")
@@ -38,7 +40,7 @@ print("args=",args)
 
 run = wandb.init(
     # Set the project where this run will be logged
-    project="SL_project",
+    project="SL_project_more",
     # Track hyperparameters and run metadata
     config= vars(args)
     )
@@ -58,6 +60,7 @@ epochs = args.num_epochs
 learning_rate = args.learning_rate
 batch_size = args.batch_size
 split_start = args.split_start
+train_cut = args.train_cut
 # %%
 # find all pickle files in the current directory using glob
 
@@ -96,9 +99,9 @@ act = np.array(data['actions'].to_list())
 ids = np.array(data['agent_index'].to_list())
 
 # %%
-def get_datasets(data, split_start = 0.7):
+def get_datasets(data, train_cut = 1000, split_start = None):
 
-    ratios=[split_start, 0.9, 1.0]
+    # ratios=[split_start, 0.9, 1.0]
     
     data = data.sort_values(by=['eps_id','agent_index', 't'], ignore_index=True)
     data = data.rename(columns={"action_dist_inputs": "logits"})
@@ -115,22 +118,44 @@ def get_datasets(data, split_start = 0.7):
     num_episodes = len(data['eps_id'].unique()) - (len(data['eps_id'].unique()) % batch_size)
     length_of_epi = max(data['t'].unique()) + 1
     num_agents = len(data['agent_index'].unique())
-    _, train, test, val = np.split(data, [int(ratios[0]*length_of_epi*num_agents*num_episodes),int(ratios[1]*length_of_epi*num_agents*num_episodes), int(ratios[2]*length_of_epi*num_agents*num_episodes)])
 
+    assert train_cut < num_episodes, "train_cut must be less than the number of episodes"
+
+    # _, train, test, val = np.split(data, [int(ratios[0]*length_of_epi*num_agents*num_episodes),int(ratios[1]*length_of_epi*num_agents*num_episodes), int(ratios[2]*length_of_epi*num_agents*num_episodes)])
+
+    
+    # get all unique episode ids and shuffle them
+    episode_ids = data['eps_id'].unique()
+    np.random.shuffle(episode_ids)
+
+    # get the first train_cut episodes for training
+    train_ids = episode_ids[:train_cut]
+
+    # get the last 1000 episodes for testing
+    test_ids = episode_ids[-1000:]
+
+    # get the remaining episodes for validation
+    # val_ids = episode_ids[train_cut:-1000]
+
+    # get the dataframes for each set
+    train = data[data['eps_id'].isin(train_ids)]
+    test = data[data['eps_id'].isin(test_ids)]
+    # val = data[data['eps_id'].isin(val_ids)]
+    
 
     print("train shape: ", train.shape, flush=True)
     print("test shape: ", test.shape, flush=True)
-    print("val shape: ", val.shape, flush=True)
+    # print("val shape: ", val.shape, flush=True)
 
 
     train_partitions = []
     test_partitions = []
-    val_partitions = []
+    # val_partitions = []
 
     for agent_ind in np.arange(num_agents):
         train_partitions.append(train[train['agent_index'] == agent_ind])
         test_partitions.append(test[test['agent_index'] == agent_ind])
-        val_partitions.append(val[val['agent_index'] == agent_ind])
+        # val_partitions.append(val[val['agent_index'] == agent_ind])
 
     obs_train = []
     obs_test = []
@@ -156,38 +181,38 @@ def get_datasets(data, split_start = 0.7):
 
         obs_train.append(np.array(train_partitions[i]['obs'].to_list()))
         obs_test.append(np.array(test_partitions[i]['obs'].to_list()))
-        obs_val.append(np.array(val_partitions[i]['obs'].to_list()))
+        # obs_val.append(np.array(val_partitions[i]['obs'].to_list()))
         act_train.append(np.array(train_partitions[i]['actions'].to_list()))
         act_test.append(np.array(test_partitions[i]['actions'].to_list()))
-        act_val.append(np.array(val_partitions[i]['actions'].to_list()))
+        # act_val.append(np.array(val_partitions[i]['actions'].to_list()))
         act_prob_train.append(np.array(train_partitions[i]['action_prob'].to_list()))
         act_prob_test.append(np.array(test_partitions[i]['action_prob'].to_list()))
-        act_prob_val.append(np.array(val_partitions[i]['action_prob'].to_list()))
+        # act_prob_val.append(np.array(val_partitions[i]['action_prob'].to_list()))
         ids_train.append(np.array(train_partitions[i]['agent_index'].to_list()))
         ids_test.append(np.array(test_partitions[i]['agent_index'].to_list()))
-        ids_val.append(np.array(val_partitions[i]['agent_index'].to_list()))
+        # ids_val.append(np.array(val_partitions[i]['agent_index'].to_list()))
         logits_train.append(np.array(train_partitions[i]['logits'].to_list()))
         logits_test.append(np.array(test_partitions[i]['logits'].to_list()))
-        logits_val.append(np.array(val_partitions[i]['logits'].to_list()))
+        # logits_val.append(np.array(val_partitions[i]['logits'].to_list()))
         # probs_train.append(np.array(train_partitions[i]['probs'].to_list()))
         # probs_test.append(np.array(test_partitions[i]['probs'].to_list()))
         # probs_val.append(np.array(val_partitions[i]['probs'].to_list()))
 
     obs_train = np.array(obs_train)
     obs_test = np.array(obs_test)
-    obs_val = np.array(obs_val)
+    # obs_val = np.array(obs_val)
     act_train = np.array(act_train)
     act_test = np.array(act_test)
-    act_val = np.array(act_val)
+    # act_val = np.array(act_val)
     act_prob_train = np.array(act_prob_train)
     act_prob_test = np.array(act_prob_test)
-    act_prob_val = np.array(act_prob_val)
+    # act_prob_val = np.array(act_prob_val)
     ids_train = np.array(ids_train)
     ids_test = np.array(ids_test)
-    ids_val = np.array(ids_val)
+    # ids_val = np.array(ids_val)
     logits_train = np.array(logits_train)
     logits_test = np.array(logits_test)
-    logits_val = np.array(logits_val)
+    # logits_val = np.array(logits_val)
     # probs_train = np.array(probs_train)
     # probs_test = np.array(probs_test)
     # probs_val = np.array(probs_val)
@@ -196,9 +221,9 @@ def get_datasets(data, split_start = 0.7):
 
     train_dataset = (obs_train, act_train)
     test_dataset = (obs_test, act_test)
-    val_dataset = (obs_val, act_val)
+    # val_dataset = (obs_val, act_val)
     
-    return train_dataset, test_dataset, val_dataset
+    return train_dataset, test_dataset
 
 def data_generator(data, batch_size):
     """
@@ -531,7 +556,7 @@ def test_model(net, criterion, generator):
 
 if __name__ == "__main__":
 
-    train_ds, test_ds, val_ds = get_datasets(data=data, split_start=split_start)
+    train_ds, test_ds = get_datasets(data=data, train_cut=1000)
     model = MultiInputMultiOutputNet(input_size = n_input, hidden_size = n_hidden, output_size = n_out, mode=mode)
 
     # Move the model to the GPU if available
