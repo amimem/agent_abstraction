@@ -110,7 +110,8 @@ def get_datasets(data, split_start = 0.7):
     # splitting dataset by episodes
 
     # shuffle the data
-    data = data.sample(frac=1).reset_index(drop=True)
+    # TODO: remove later
+    # data = data.sample(frac=1).reset_index(drop=True)
     num_episodes = len(data['eps_id'].unique()) - (len(data['eps_id'].unique()) % batch_size)
     length_of_epi = max(data['t'].unique()) + 1
     num_agents = len(data['agent_index'].unique())
@@ -206,12 +207,13 @@ def data_generator(data, batch_size):
     X, y = data
 
     # shuffle the data
-    randomize = np.arange(len(y))
-    # np.random.shuffle(randomize)
-    X = X[randomize]
-    y = y[randomize]
+    randomize = np.arange(y.shape[-1])
+    np.random.shuffle(randomize)
+    X = X[:, randomize]
+    y = y[:, randomize]
     
     num_samples = y.shape[-1]
+    # num_samples is divisible by batch_size
     num_batches = num_samples // batch_size
     if num_samples % batch_size != 0:
         num_batches += 1
@@ -602,5 +604,3 @@ if __name__ == "__main__":
            np.save(f'{path}/test_accuracies_{t+1}_{split_start}_{seed}_{learning_rate}_{n_hidden}_{mode}.npy', test_accuracies)
 
     print("Done!")
-
-# %%
