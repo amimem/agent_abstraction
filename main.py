@@ -5,10 +5,10 @@ import torch.distributions as distributions
 import numpy as np
 import logging
 
-from Environment import Environment
-from AbstractionModelJointPolicy import AbstractionModelJointPolicy
+from gumbel_partition.Environment import Environment
+from gumbel_partition.GumbelPartition import GumbelPartitionModel
 
-# from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 
 logging.basicConfig(level=logging.INFO)
 
@@ -36,7 +36,7 @@ enc_hidden_dim = 256
 env = Environment(state_space_dim, num_agents, epsiode_length)
 
 # Initialize model
-model = AbstractionModelJointPolicy(
+model = GumbelPartitionModel(
     state_space_dim,
     abs_action_space_dim,
     enc_hidden_dim,
@@ -46,8 +46,6 @@ model = AbstractionModelJointPolicy(
     )
 
 if __name__ == '__main__':
-    
-    #example rollout
     num_steps = 5
     episode_time_indices = []
     for step in range(num_steps):
@@ -55,12 +53,7 @@ if __name__ == '__main__':
         writer.add_graph(model, env.state)
         writer.close()
         logging.info(f"Input state: {env.state}")
-        action_probability_vectors = model.forward(env.state)
-        
-        #take greedy action
-        actions = torch.argmax(action_probability_vector,2)
-        #sample
-        # actions=[choices(action_probability_vector) for action_probability_vector in action_probability_vectors]  #from random import choices # Pyver>=3.6
+        actions = model.forward(env.state)
         logging.info(f"Output actions: {actions}")
         env.state, episode_step = env.step(env.state, actions)
         episode_time_indices.append(episode_step)
