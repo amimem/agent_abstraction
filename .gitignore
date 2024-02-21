@@ -137,3 +137,4 @@ wandb/
 
 # data folders
 data/
+gumbel_partition/output/
