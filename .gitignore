@@ -137,4 +137,5 @@ wandb/
 
 # data folders
 data/
-gumbel_partition/output/
+gumbel_partition/output/*
+old/
