@@ -1,5 +1,7 @@
 # MARL - Agent Abstraction
 
+This repository contains the source code used for our experiments on agent abstraction in multi-agent reinforcement learning. It includes, but is not limited to, the code necessary for reproducing the plots from our ICLR 2022 workshop paper, [Summarizing Societies: Agent Abstraction in Multi-Agent Reinforcement Learning](https://openreview.net/forum?id=Sc9ESMyTZ9).
+
 ## Mila Cluster First Time Setup:
 
 If you are in the interactive mode:
